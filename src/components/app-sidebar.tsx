@@ -1,9 +1,11 @@
 "use client"
 
+import Link from "next/link"
 import * as React from "react"
 import {
   IconCamera,
   IconChartBar,
+  IconCreditCard,
   IconDashboard,
   IconDatabase,
   IconFileAi,
@@ -13,12 +15,16 @@ import {
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
+  IconMoneybag,
   IconReport,
   IconSearch,
   IconSettings,
+  IconShoppingCart,
   IconUsers,
+  IconWallet,
 } from "@tabler/icons-react"
 
+import { NavClouds } from "@/components/nav-clouds"
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -37,74 +43,82 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
+      title: "Payments",
+      url: "/payments",
+      icon: IconCreditCard,
     },
     {
       title: "Analytics",
-      url: "#",
+      url: "/analytics",
       icon: IconChartBar,
     },
     {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
+      title: "Products",
+      url: "/products",
+      icon: IconShoppingCart,
     },
     {
       title: "Team",
-      url: "#",
+      url: "/team",
       icon: IconUsers,
     },
   ],
   navClouds: [
     {
-      title: "Capture",
-      icon: IconCamera,
+      title: "Payment Processing",
+      icon: IconWallet,
       isActive: true,
-      url: "#",
+      url: "/payments",
       items: [
         {
-          title: "Active Proposals",
-          url: "#",
+          title: "Stripe Integration",
+          url: "/payments/stripe",
         },
         {
-          title: "Archived",
-          url: "#",
+          title: "Transaction History",
+          url: "/payments/transactions",
+        },
+        {
+          title: "Refunds",
+          url: "/payments/refunds",
         },
       ],
     },
     {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
+      title: "Business Tools",
+      icon: IconMoneybag,
+      url: "/business",
       items: [
         {
-          title: "Active Proposals",
-          url: "#",
+          title: "Invoicing",
+          url: "/business/invoicing",
         },
         {
-          title: "Archived",
-          url: "#",
+          title: "Subscriptions",
+          url: "/business/subscriptions",
+        },
+        {
+          title: "Tax Reports",
+          url: "/business/tax",
         },
       ],
     },
     {
-      title: "Prompts",
+      title: "AI Assistant",
       icon: IconFileAi,
-      url: "#",
+      url: "/ai",
       items: [
         {
-          title: "Active Proposals",
-          url: "#",
+          title: "Payment Insights",
+          url: "/ai/payment-insights",
         },
         {
-          title: "Archived",
-          url: "#",
+          title: "Business Analytics",
+          url: "/ai/analytics",
         },
       ],
     },
@@ -112,34 +126,34 @@ const data = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/settings",
       icon: IconSettings,
     },
     {
       title: "Get Help",
-      url: "#",
+      url: "/help",
       icon: IconHelp,
     },
     {
       title: "Search",
-      url: "#",
+      url: "/search",
       icon: IconSearch,
     },
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
+      name: "Payment Data",
+      url: "/data/payments",
       icon: IconDatabase,
     },
     {
-      name: "Reports",
-      url: "#",
+      name: "Financial Reports",
+      url: "/reports/financial",
       icon: IconReport,
     },
     {
-      name: "Word Assistant",
-      url: "#",
+      name: "Business Assistant",
+      url: "/assistant",
       icon: IconFileWord,
     },
   ],
@@ -155,16 +169,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
-              </a>
+              <Link href="/dashboard">
+                <span className="text-base font-semibold">Zypto.</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <hr className="mt-1"/>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
+        <NavClouds items={data.navClouds} />
         <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>

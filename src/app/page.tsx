@@ -2,38 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import Header from "@/components/Header";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export default function Home() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (user) {
-    return null; // Will redirect to dashboard
-  }
-
   return (
-    <>
+    <AuthGuard requireAuth={false}>
       <Header />
       <main>
         <section className="bg-white dark:bg-black border-b border-gray-400/50">
@@ -136,6 +110,6 @@ export default function Home() {
           </div>
         </section>
       </main>
-    </>
+    </AuthGuard>
   );
 }
