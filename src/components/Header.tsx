@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "flowbite-react";
+import { Button } from "@/components/ui/button";
 
 export default function Header() {
     const { user, logout } = useAuth();
@@ -18,7 +18,7 @@ export default function Header() {
 
     return (
         <section className="sticky top-0 z-50">
-            <div className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 px-4 lg:px-6 py-2.5 dark:bg-black/80 dark:border-gray-700/50">
+            <div className="bg-black/80 backdrop-blur-md border-b border-gray-200/50 px-4 lg:px-6 py-2.5 dark:bg-black/80 dark:border-gray-700/50">
                 <div className="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
                     <Link href={user ? "/dashboard" : "/"} className="flex items-center">
                         <Image
@@ -47,7 +47,7 @@ export default function Header() {
                                 </div>
                                 <Button
                                     size="sm"
-                                    color="gray"
+                                    variant="outline"
                                     onClick={handleLogout}
                                     className="text-gray-800 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
@@ -57,7 +57,6 @@ export default function Header() {
                         ) : (
                             <>
                                 <Link href="/auth" className="text-gray-800 dark:text-white hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 mr-2 dark:hover:bg-gray-700 focus:outline-none dark:focus:ring-gray-800">🔐 Log in</Link>
-                                <Link href="/auth" className="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 mr-2 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">Get started</Link>
                             </>
                         )}
                         <button data-collapse-toggle="mobile-menu-2" type="button" className="inline-flex items-center p-2 ml-1 text-sm text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="mobile-menu-2" aria-expanded="false">
