@@ -1,10 +1,12 @@
 const Payment = require('../models/Payment')
 const ChartData = require('../models/ChartData')
 const SectionCard = require('../models/SectionCard')
+const SectionCardService = require('../services/sectionCardService')
 
 const seedPayments = [
   {
     id: 1,
+    userId: "demo-user-123",
     userName: "Alice Johnson",
     paymentType: "subscription",
     price: 29.99,
@@ -14,6 +16,7 @@ const seedPayments = [
   },
   {
     id: 2,
+    userId: "demo-user-123",
     userName: "Bob Smith",
     paymentType: "one-time",
     price: 49.99,
@@ -21,6 +24,7 @@ const seedPayments = [
   },
   {
     id: 3,
+    userId: "demo-user-123",
     userName: "Carol Davis",
     paymentType: "subscription",
     price: 29.99,
@@ -30,6 +34,7 @@ const seedPayments = [
   },
   {
     id: 4,
+    userId: "demo-user-123",
     userName: "David Wilson",
     paymentType: "one-time",
     price: 79.99,
@@ -37,6 +42,7 @@ const seedPayments = [
   },
   {
     id: 5,
+    userId: "demo-user-123",
     userName: "Eva Brown",
     paymentType: "subscription",
     price: 29.99,
@@ -46,6 +52,7 @@ const seedPayments = [
   },
   {
     id: 6,
+    userId: "demo-user-123",
     userName: "Frank Miller",
     paymentType: "one-time",
     price: 99.99,
@@ -53,6 +60,7 @@ const seedPayments = [
   },
   {
     id: 7,
+    userId: "demo-user-123",
     userName: "Grace Lee",
     paymentType: "subscription",
     price: 29.99,
@@ -62,6 +70,7 @@ const seedPayments = [
   },
   {
     id: 8,
+    userId: "demo-user-123",
     userName: "Henry Taylor",
     paymentType: "one-time",
     price: 59.99,
@@ -69,6 +78,7 @@ const seedPayments = [
   },
   {
     id: 9,
+    userId: "demo-user-123",
     userName: "Ivy Chen",
     paymentType: "subscription",
     price: 29.99,
@@ -78,6 +88,7 @@ const seedPayments = [
   },
   {
     id: 10,
+    userId: "demo-user-123",
     userName: "Jack Anderson",
     paymentType: "one-time",
     price: 89.99,
@@ -85,6 +96,7 @@ const seedPayments = [
   },
   {
     id: 11,
+    userId: "demo-user-123",
     userName: "Ethan Cooper",
     paymentType: "subscription",
     price: -29.99,
@@ -93,6 +105,7 @@ const seedPayments = [
   },
   {
     id: 12,
+    userId: "demo-user-123",
     userName: "Fiona Reed",
     paymentType: "one-time",
     price: -79.99,
@@ -100,6 +113,7 @@ const seedPayments = [
   },
   {
     id: 13,
+    userId: "demo-user-123",
     userName: "George Murphy",
     paymentType: "subscription",
     price: -29.99,
@@ -166,9 +180,10 @@ const seedDatabase = async () => {
     await ChartData.insertMany(seedChartData)
     console.log(`✅ Seeded ${seedChartData.length} chart data entries`)
 
-    // Seed section cards
-    await SectionCard.insertMany(seedSectionCards)
-    console.log(`✅ Seeded ${seedSectionCards.length} section cards`)
+        // Initialize section cards with static values for demo user
+        const demoUserId = 'demo-user-123'
+        await SectionCardService.initializeSectionCards(demoUserId)
+        console.log('✅ Section cards initialized with static values for demo user')
 
     console.log('🎉 Database seeding completed successfully!')
   } catch (error) {

@@ -20,7 +20,7 @@ export default function Page() {
   const { data: payments, loading: paymentsLoading, error: paymentsError, refetch: refetchPayments } = usePayments()
   const { data: stats, loading: statsLoading, error: statsError } = useDashboardStats()
   const { data: chartData, loading: chartLoading, error: chartError } = useChartData()
-  const { data: sectionCards, loading: cardsLoading, error: cardsError } = useSectionCards()
+  const { data: sectionCards, loading: cardsLoading, error: cardsError } = useSectionCards('demo-user-123')
 
   const isLoading = paymentsLoading || statsLoading || chartLoading || cardsLoading
   const hasError = paymentsError || statsError || chartError || cardsError

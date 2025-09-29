@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { apiService, PaymentData, DashboardStats, ChartData, SectionCardData } from '@/lib/api'
 
 export function usePayments() {
@@ -92,28 +92,84 @@ export function useChartData() {
   return { data, loading, error }
 }
 
-export function useSectionCards() {
+export function useSectionCards(userId: string) {
   const [data, setData] = useState<SectionCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchSectionCards = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const cards = await apiService.getSectionCards()
-        setData(cards)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch section cards')
-        console.error('Error fetching section cards:', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchSectionCards = useCallback(async () => {
+    if (!userId) return
+    
+    try {
+      setLoading(true)
+      setError(null)
+      const cards = await apiService.getSectionCards(userId)
+      setData(cards)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch section cards')
+      console.error('Error fetching section cards:', err)
+    } finally {
+      setLoading(false)
     }
+  }, [userId])
 
+  const updateSectionCards = useCallback(async () => {
+    if (!userId) return
+    
+    try {
+      setError(null)
+      await apiService.updateSectionCards(userId)
+      await fetchSectionCards() // Refresh data after update
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update section cards')
+    }
+  }, [userId, fetchSectionCards])
+
+  const updateSectionCardValue = useCallback(async (title: string, value: string, trend: number, trendLabel: string) => {
+    if (!userId) return
+    
+    try {
+      setError(null)
+      const updatedCard = await apiService.updateSectionCardValue(userId, title, value, trend, trendLabel)
+      setData(prevData => 
+        prevData.map(card => card.title === title ? updatedCard : card)
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update section card value')
+    }
+  }, [userId])
+
+  const initializeSectionCards = useCallback(async () => {
+    if (!userId) return
+    
+    try {
+      setError(null)
+      const result = await apiService.initializeSectionCards(userId)
+      if (result.data.initialized) {
+        await fetchSectionCards() // Refresh data after initialization
+      }
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initialize section cards')
+      throw err
+    }
+  }, [userId, fetchSectionCards])
+
+  useEffect(() => {
     fetchSectionCards()
-  }, [])
+  }, [fetchSectionCards])
 
-  return { data, loading, error }
+  const refetch = useCallback(() => {
+    fetchSectionCards()
+  }, [fetchSectionCards])
+
+  return { 
+    data, 
+    loading, 
+    error, 
+    refetch, 
+    updateSectionCards, 
+    updateSectionCardValue,
+    initializeSectionCards
+  }
 }

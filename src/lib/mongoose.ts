@@ -61,13 +61,13 @@ export class MongooseService {
 
     const payments = await Payment.find(query).sort({ date: -1 }).lean()
     return payments.map(payment => ({
-      id: payment.id,
-      userName: payment.userName,
-      paymentType: payment.paymentType,
-      price: payment.price,
-      date: payment.date,
-      subscriptionId: payment.subscriptionId,
-      planName: payment.planName
+      id: (payment as any).id,
+      userName: (payment as any).userName,
+      paymentType: (payment as any).paymentType,
+      price: (payment as any).price,
+      date: (payment as any).date,
+      subscriptionId: (payment as any).subscriptionId,
+      planName: (payment as any).planName
     }))
   }
 
@@ -78,13 +78,13 @@ export class MongooseService {
     if (!payment) return null
     
     return {
-      id: payment.id,
-      userName: payment.userName,
-      paymentType: payment.paymentType,
-      price: payment.price,
-      date: payment.date,
-      subscriptionId: payment.subscriptionId,
-      planName: payment.planName
+      id: (payment as any).id,
+      userName: (payment as any).userName,
+      paymentType: (payment as any).paymentType,
+      price: (payment as any).price,
+      date: (payment as any).date,
+      subscriptionId: (payment as any).subscriptionId,
+      planName: (payment as any).planName
     }
   }
 
@@ -93,7 +93,7 @@ export class MongooseService {
     
     // Get the next ID
     const lastPayment = await Payment.findOne({}).sort({ id: -1 }).lean()
-    const nextId = lastPayment ? lastPayment.id + 1 : 1
+    const nextId = lastPayment ? (lastPayment as any).id + 1 : 1
 
     const newPayment = new Payment({
       ...payment,
@@ -103,13 +103,13 @@ export class MongooseService {
     await newPayment.save()
     
     return {
-      id: newPayment.id,
-      userName: newPayment.userName,
-      paymentType: newPayment.paymentType,
-      price: newPayment.price,
-      date: newPayment.date,
-      subscriptionId: newPayment.subscriptionId,
-      planName: newPayment.planName
+      id: (newPayment as any).id,
+      userName: (newPayment as any).userName,
+      paymentType: (newPayment as any).paymentType,
+      price: (newPayment as any).price,
+      date: (newPayment as any).date,
+      subscriptionId: (newPayment as any).subscriptionId,
+      planName: (newPayment as any).planName
     }
   }
 
@@ -125,13 +125,13 @@ export class MongooseService {
     if (!updatedPayment) return null
     
     return {
-      id: updatedPayment.id,
-      userName: updatedPayment.userName,
-      paymentType: updatedPayment.paymentType,
-      price: updatedPayment.price,
-      date: updatedPayment.date,
-      subscriptionId: updatedPayment.subscriptionId,
-      planName: updatedPayment.planName
+      id: (updatedPayment as any).id,
+      userName: (updatedPayment as any).userName,
+      paymentType: (updatedPayment as any).paymentType,
+      price: (updatedPayment as any).price,
+      date: (updatedPayment as any).date,
+      subscriptionId: (updatedPayment as any).subscriptionId,
+      planName: (updatedPayment as any).planName
     }
   }
 

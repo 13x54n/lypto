@@ -3,8 +3,7 @@ const mongoose = require('mongoose')
 const chartDataSchema = new mongoose.Schema({
   month: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   desktop: {
     type: Number,

@@ -24,8 +24,6 @@ import {
   IconWallet,
 } from "@tabler/icons-react"
 
-import { NavClouds } from "@/components/nav-clouds"
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -67,62 +65,6 @@ const data = {
       icon: IconUsers,
     },
   ],
-  navClouds: [
-    {
-      title: "Payment Processing",
-      icon: IconWallet,
-      isActive: true,
-      url: "/payments",
-      items: [
-        {
-          title: "Stripe Integration",
-          url: "/payments/stripe",
-        },
-        {
-          title: "Transaction History",
-          url: "/payments/transactions",
-        },
-        {
-          title: "Refunds",
-          url: "/payments/refunds",
-        },
-      ],
-    },
-    {
-      title: "Business Tools",
-      icon: IconMoneybag,
-      url: "/business",
-      items: [
-        {
-          title: "Invoicing",
-          url: "/business/invoicing",
-        },
-        {
-          title: "Subscriptions",
-          url: "/business/subscriptions",
-        },
-        {
-          title: "Tax Reports",
-          url: "/business/tax",
-        },
-      ],
-    },
-    {
-      title: "AI Assistant",
-      icon: IconFileAi,
-      url: "/ai",
-      items: [
-        {
-          title: "Payment Insights",
-          url: "/ai/payment-insights",
-        },
-        {
-          title: "Business Analytics",
-          url: "/ai/analytics",
-        },
-      ],
-    },
-  ],
   navSecondary: [
     {
       title: "Settings",
@@ -133,30 +75,8 @@ const data = {
       title: "Get Help",
       url: "/help",
       icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "/search",
-      icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "Payment Data",
-      url: "/data/payments",
-      icon: IconDatabase,
-    },
-    {
-      name: "Financial Reports",
-      url: "/reports/financial",
-      icon: IconReport,
-    },
-    {
-      name: "Business Assistant",
-      url: "/assistant",
-      icon: IconFileWord,
-    },
-  ],
+    }
+  ]
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -179,8 +99,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavClouds items={data.navClouds} />
-        <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

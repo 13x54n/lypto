@@ -3,8 +3,12 @@ const mongoose = require('mongoose')
 const paymentSchema = new mongoose.Schema({
   id: {
     type: Number,
+    required: true
+  },
+  userId: {
+    type: String,
     required: true,
-    unique: true
+    index: true
   },
   userName: {
     type: String,

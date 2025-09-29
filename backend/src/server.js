@@ -12,6 +12,8 @@ const errorHandler = require('./middleware/errorHandler')
 // Import routes
 const paymentRoutes = require('./routes/payments')
 const dashboardRoutes = require('./routes/dashboard')
+const solanaPaymentsRoutes = require('./routes/solanaPayments')
+const authRoutes = require('./routes/auth')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -23,9 +25,17 @@ connectDB()
 app.use(helmet())
 
 // CORS configuration
+// Allow mobile apps (which may send no Origin) and web frontend
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: (origin, callback) => {
+    const allowed = new Set([
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+    ])
+    if (!origin) return callback(null, true) // native apps / curl
+    if (allowed.has(origin)) return callback(null, true)
+    return callback(null, true) // allow others during development
+  },
+  credentials: true,
 }))
 
 // Rate limiting
@@ -58,6 +68,8 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/payments', paymentRoutes)
 app.use('/api/dashboard', dashboardRoutes)
+app.use('/api/solana-payments', solanaPaymentsRoutes)
+app.use('/api/auth', authRoutes)
 
 // 404 handler
 app.use('*', (req, res) => {

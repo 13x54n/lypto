@@ -30,6 +30,9 @@ export interface SectionCardData {
   description: string
   trend: number
   trendLabel: string
+  lastUpdated?: string
+  dataSource?: 'calculated' | 'manual' | 'api' | 'static'
+  businessType?: 'revenue' | 'subscriptions' | 'payments' | 'refunds' | 'custom'
 }
 
 class ApiService {
@@ -73,6 +76,44 @@ class ApiService {
       console.error(`API request failed for ${endpoint}:`, error)
       throw error
     }
+  }
+
+  // Auth API (OTP)
+  async requestOtp(email: string): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/auth/request-otp`, {
+      method: 'POST',
+      body: JSON.stringify({ email, platform: 'web' }),
+    })
+  }
+
+  async verifyOtp(email: string, code: string): Promise<{ token: string; user?: any }> {
+    const res = await this.request<{ 
+      success?: boolean; 
+      data?: { 
+        token: string; 
+        user: {
+          userId: string;
+          email: string;
+          platform: string;
+          lastLogin: string;
+          loginCount: number;
+        }
+      }; 
+      token?: string 
+    }>(`/auth/verify-otp`, {
+      method: 'POST',
+      body: JSON.stringify({ email, code, platform: 'web' }),
+    })
+    
+    // Handle both backend response formats
+    if ((res as any)?.data?.token && (res as any)?.data?.user) {
+      return { 
+        token: (res as any).data.token as string,
+        user: (res as any).data.user
+      }
+    }
+    if ((res as any)?.token) return { token: (res as any).token as string }
+    throw new Error('Invalid verifyOtp response')
   }
 
   // Payments API
@@ -143,12 +184,45 @@ class ApiService {
   }
 
   // Section Cards API
-  async getSectionCards(): Promise<SectionCardData[]> {
+  async getSectionCards(userId: string): Promise<SectionCardData[]> {
     if (this.useMockData) {
       const { mockApiService } = await import('./mock-api')
       return mockApiService.getSectionCards()
     }
-    return this.request<SectionCardData[]>('/dashboard/section-cards')
+    return this.request<SectionCardData[]>(`/dashboard/section-cards?userId=${encodeURIComponent(userId)}`)
+  }
+
+  async updateSectionCards(userId: string): Promise<{ success: boolean; message: string }> {
+    if (this.useMockData) {
+      return { success: true, message: 'Section cards updated (mock)' }
+    }
+    return this.request<{ success: boolean; message: string }>('/dashboard/section-cards/update', {
+      method: 'POST',
+      body: JSON.stringify({ userId })
+    })
+  }
+
+  async updateSectionCardValue(userId: string, title: string, value: string, trend: number, trendLabel: string): Promise<SectionCardData> {
+    if (this.useMockData) {
+      const { mockApiService } = await import('./mock-api')
+      return mockApiService.getSectionCards().then(cards => 
+        cards.find(card => card.title === title) || cards[0]
+      )
+    }
+    return this.request<SectionCardData>(`/dashboard/section-cards/${encodeURIComponent(title)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ userId, value, trend, trendLabel })
+    })
+  }
+
+  async initializeSectionCards(userId: string): Promise<{ success: boolean; message: string; data: { initialized: boolean } }> {
+    if (this.useMockData) {
+      return { success: true, message: 'Section cards initialized (mock)', data: { initialized: true } }
+    }
+    return this.request<{ success: boolean; message: string; data: { initialized: boolean } }>('/dashboard/section-cards/initialize', {
+      method: 'POST',
+      body: JSON.stringify({ userId })
+    })
   }
 
   // Filtered payments

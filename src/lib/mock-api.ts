@@ -132,28 +132,40 @@ const mockSectionCards: SectionCardData[] = [
     value: "$15,420.50",
     description: "Total revenue generated",
     trend: 24.5,
-    trendLabel: "+24.5%"
+    trendLabel: "+24.5%",
+    lastUpdated: new Date().toISOString(),
+    dataSource: 'static' as const,
+    businessType: 'revenue' as const
   },
   {
-    title: "Active Subscriptions",
+    title: "Active Subscriptions", 
     value: "7",
     description: "Active subscription payments",
     trend: 31,
-    trendLabel: "+31%"
+    trendLabel: "+31%",
+    lastUpdated: new Date().toISOString(),
+    dataSource: 'static' as const,
+    businessType: 'subscriptions' as const
   },
   {
     title: "One-time Payments",
-    value: "3",
+    value: "3", 
     description: "One-time payment count",
     trend: 18.2,
-    trendLabel: "+18.2%"
+    trendLabel: "+18.2%",
+    lastUpdated: new Date().toISOString(),
+    dataSource: 'static' as const,
+    businessType: 'payments' as const
   },
   {
     title: "Refunds",
     value: "3",
-    description: "Total refunds processed",
+    description: "Total refunds processed", 
     trend: -5.2,
-    trendLabel: "-5.2%"
+    trendLabel: "-5.2%",
+    lastUpdated: new Date().toISOString(),
+    dataSource: 'static' as const,
+    businessType: 'refunds' as const
   }
 ]
 
