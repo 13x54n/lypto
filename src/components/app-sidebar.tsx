@@ -45,19 +45,9 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Payments",
-      url: "/payments",
-      icon: IconCreditCard,
-    },
-    {
       title: "Analytics",
       url: "/analytics",
       icon: IconChartBar,
-    },
-    {
-      title: "Products",
-      url: "/products",
-      icon: IconShoppingCart,
     },
     {
       title: "Team",

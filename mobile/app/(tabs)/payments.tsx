@@ -35,28 +35,35 @@ export default function PaymentsScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+            <Text style={styles.sectionTitle}>Payment History</Text>
             <View style={styles.transactionList}>
               <View style={styles.transactionItem}>
                 <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionTitle}>Premium Subscription</Text>
-                  <Text style={styles.transactionDate}>2 hours ago</Text>
+                  <Text style={styles.transactionTitle}>Incoming</Text>
+                  <Text style={styles.transactionDate}>October 6, 2025</Text>
                 </View>
-                <Text style={styles.transactionAmount}>+50 SOL</Text>
+                <Text style={styles.transactionAmount}>2.5 SOL</Text>
               </View>
               <View style={styles.transactionItem}>
                 <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionTitle}>One-time Payment</Text>
-                  <Text style={styles.transactionDate}>5 hours ago</Text>
+                  <Text style={styles.transactionTitle}>Incoming</Text>
+                  <Text style={styles.transactionDate}>October 7, 2025</Text>
                 </View>
-                <Text style={styles.transactionAmount}>+25 SOL</Text>
+                <Text style={styles.transactionAmount}>2.4 SOL</Text>
               </View>
               <View style={styles.transactionItem}>
                 <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionTitle}>Custom Plan</Text>
-                  <Text style={styles.transactionDate}>1 day ago</Text>
+                  <Text style={styles.transactionTitle}>Incoming</Text>
+                  <Text style={styles.transactionDate}>October 7, 2025</Text>
                 </View>
-                <Text style={styles.transactionAmount}>+100 SOL</Text>
+                <Text style={styles.transactionAmount}>0.1 SOL</Text>
+              </View>
+              <View style={styles.transactionItem}>
+                <View style={styles.transactionInfo}>
+                  <Text style={styles.transactionTitle}>Available</Text>
+                  <Text style={styles.transactionDate}>Current balance</Text>
+                </View>
+                <Text style={[styles.transactionAmount, { color: '#3b82f6' }]}>0.0 SOL</Text>
               </View>
             </View>
           </View>
