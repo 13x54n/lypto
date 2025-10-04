@@ -62,20 +62,27 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 }
 
 // Chart tooltip
-interface ChartTooltipProps extends Omit<RechartsPrimitive.TooltipProps<any, any>, "content"> {
+interface ChartTooltipProps extends Omit<RechartsPrimitive.TooltipProps<string | number, string | number>, "content"> {
   content?: React.ComponentProps<typeof RechartsPrimitive.Tooltip>["content"]
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+interface PayloadItem {
+  value: number
+  name: string
+  color?: string
+  dataKey?: string
+}
+
 interface ChartTooltipContentProps {
   active?: boolean
-  payload?: any[]
+  payload?: PayloadItem[]
   label?: string
   category?: string
   className?: string
-  formatter?: (value: number, name: string, item: any, index: number) => [React.ReactNode, string]
-  labelFormatter?: (label: string, payload: any[]) => React.ReactNode
+  formatter?: (value: number, name: string, item: PayloadItem, index: number) => [React.ReactNode, string]
+  labelFormatter?: (label: string, payload: PayloadItem[]) => React.ReactNode
   color?: string
   indicator?: "line" | "dot" | "dashed" | "none"
 }
@@ -196,17 +203,26 @@ ChartTooltipContent.displayName = "ChartTooltipContent"
 // Chart legend
 const ChartLegend = RechartsPrimitive.Legend
 
+interface LegendEntry {
+  value: string
+  color?: string
+}
+
+interface LegendProps {
+  payload?: LegendEntry[]
+}
+
 interface ChartLegendContentProps {
   className?: string
   hideIcon?: boolean
-  children?: (props: any) => React.ReactNode
+  children?: (props: LegendProps) => React.ReactNode
 }
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   ChartLegendContentProps
 >(({ className, hideIcon = false, children, ...props }, ref) => {
-  const renderLegend = (legendProps: any) => {
+  const renderLegend = (legendProps: LegendProps) => {
     const { payload } = legendProps
 
     return (
@@ -217,7 +233,7 @@ const ChartLegendContent = React.forwardRef<
       >
         {children
           ? children(legendProps)
-          : payload?.map((entry: any, index: number) => (
+          : payload?.map((entry: LegendEntry, index: number) => (
               <div
                 key={`legend-${index}`}
                 className={cn(
