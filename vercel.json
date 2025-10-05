@@ -1,0 +1,17 @@
+{
+  "buildCommand": "bun install && bun run build",
+  "outputDirectory": ".next",
+  "installCommand": "bun install",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./mobile/",
+  "functions": {
+    "app/**": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
+    }
+  ]
+}
