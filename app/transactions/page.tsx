@@ -149,6 +149,7 @@ export default function TransactionsPage() {
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth');
@@ -271,7 +272,7 @@ export default function TransactionsPage() {
                 </div>
               </div>
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-full md:w-48 bg-black border-gray-700 text-white">
+                <SelectTrigger className="w-full md:w-48 bg-white border-gray-700 text-black">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
@@ -283,7 +284,7 @@ export default function TransactionsPage() {
               </Select>
               <Button 
                 variant="outline" 
-                className="bg-black border-gray-700 text-white hover:bg-gray-700"
+                className="bg-white border-gray-700 text-black hover:bg-gray-700"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Export
@@ -294,12 +295,6 @@ export default function TransactionsPage() {
 
         {/* Transactions Table */}
         <div className="bg-black border-0">
-          <CardHeader>
-            <CardTitle className="text-white">All Transactions</CardTitle>
-            <CardDescription className="text-gray-400">
-              {filteredTransactions.length} transactions found
-            </CardDescription>
-          </CardHeader>
           <div>
             <Table>
               <TableHeader>

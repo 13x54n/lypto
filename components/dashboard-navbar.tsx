@@ -56,12 +56,6 @@ const DashboardNavbar = () => {
       active: pathname === "/transactions"
     },
     {
-      title: "Earn",
-      href: "/earn",
-      icon: <BarChart3 className="size-5" />,
-      active: pathname === "/earn"
-    },
-    {
       title: "Redeem & Rewards",
       href: "/redeem",
       icon: <Wallet className="size-5" />,
@@ -84,7 +78,7 @@ const DashboardNavbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-white">Zypto</span>
+            <span className="text-2xl font-bold text-white">Lypto</span>
           </Link>
 
           {/* Desktop Navigation */}

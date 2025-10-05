@@ -1,9 +1,13 @@
-import { ArrowRight } from "lucide-react";
+"use client";
 
+import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Feature } from "@/components/feature";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Hero1Props {
   badge?: string;
@@ -40,6 +44,15 @@ export default function Home({
     alt: "Hero section demo image showing interface components",
   },
 }: Hero1Props) {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user]);
+
   return (
     <main className="min-h-screen bg-black overflow-hidden flex flex-col">
       <div className="mx-auto px-4">

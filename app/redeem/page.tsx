@@ -20,16 +20,12 @@ import {
   ChevronDown,
   Gift,
   Star,
-  ShoppingBag,
-  Plane,
-  Coffee,
-  Car,
-  Gamepad2,
-  Music,
-  Zap,
-  TrendingUp
+  Zap
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { RefreshCw } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import Image from "next/image";
 
 // Mock crypto data
 const cryptoAssets = [
@@ -49,7 +45,7 @@ const offers = [
     points: 500,
     originalPrice: 25,
     discountedPrice: 12.50,
-    image: "☕",
+    image: "https://logos-world.net/wp-content/uploads/2020/09/Starbucks-Logo.png",
     category: "Food & Dining",
     validUntil: "Dec 31, 2024",
     popular: true
@@ -61,7 +57,7 @@ const offers = [
     points: 300,
     originalPrice: 15,
     discountedPrice: 0,
-    image: "🚗",
+    image: "https://logos-world.net/wp-content/uploads/2020/09/Uber-Logo.png",
     category: "Transportation",
     validUntil: "Jan 15, 2025",
     popular: false
@@ -73,7 +69,7 @@ const offers = [
     points: 800,
     originalPrice: 50,
     discountedPrice: 40,
-    image: "📦",
+    image: "https://logos-world.net/wp-content/uploads/2020/04/Amazon-Logo.png",
     category: "Shopping",
     validUntil: "Feb 28, 2025",
     popular: true
@@ -85,34 +81,58 @@ const offers = [
     points: 400,
     originalPrice: 30,
     discountedPrice: 0,
-    image: "🎵",
+    image: "https://logos-world.net/wp-content/uploads/2020/09/Spotify-Logo.png",
     category: "Entertainment",
     validUntil: "Mar 31, 2025",
     popular: false
   },
   {
     id: 5,
-    title: "Flight Voucher",
-    description: "$100 off domestic flights",
-    points: 1200,
-    originalPrice: 100,
+    title: "Netflix Subscription",
+    description: "2 months free premium",
+    points: 700,
+    originalPrice: 30,
     discountedPrice: 0,
-    image: "✈️",
-    category: "Travel",
+    image: "https://logos-world.net/wp-content/uploads/2020/04/Netflix-Logo.png",
+    category: "Entertainment",
     validUntil: "Apr 30, 2025",
     popular: true
   },
   {
     id: 6,
-    title: "Gaming Credits",
-    description: "Steam Wallet $25",
+    title: "Steam Gift Card",
+    description: "Gaming credits $25",
     points: 600,
     originalPrice: 25,
     discountedPrice: 0,
-    image: "🎮",
+    image: "https://logos-world.net/wp-content/uploads/2020/09/Steam-Logo.png",
     category: "Gaming",
     validUntil: "May 15, 2025",
     popular: false
+  },
+  {
+    id: 7,
+    title: "McDonald's Voucher",
+    description: "Free Big Mac meal",
+    points: 350,
+    originalPrice: 12,
+    discountedPrice: 0,
+    image: "https://logos-world.net/wp-content/uploads/2020/04/McDonalds-Logo.png",
+    category: "Food & Dining",
+    validUntil: "Jun 30, 2025",
+    popular: true
+  },
+  {
+    id: 8,
+    title: "Apple Store Credit",
+    description: "$50 off accessories",
+    points: 1000,
+    originalPrice: 50,
+    discountedPrice: 0,
+    image: "https://logos-world.net/wp-content/uploads/2020/04/Apple-Logo.png",
+    category: "Technology",
+    validUntil: "Jul 31, 2025",
+    popular: true
   }
 ];
 
@@ -124,7 +144,10 @@ export default function RedeemPage() {
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [userPoints, setUserPoints] = useState(1250);
+  const [activeTab, setActiveTab] = useState<"swap" | "exchange">("swap");
+  const [autoRedeemEnabled, setAutoRedeemEnabled] = useState(false);
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth');
@@ -136,7 +159,7 @@ export default function RedeemPage() {
     if (fromAmount && fromAsset !== toAsset) {
       const fromCrypto = cryptoAssets.find(c => c.symbol === fromAsset);
       const toCrypto = cryptoAssets.find(c => c.symbol === toAsset);
-      
+
       if (fromCrypto && toCrypto) {
         const amount = parseFloat(fromAmount);
         const convertedAmount = (amount * fromCrypto.price) / toCrypto.price;
@@ -175,192 +198,189 @@ export default function RedeemPage() {
   return (
     <div className="min-h-screen bg-black">
       <DashboardNavbar />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Redeem & Rewards</h1>
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-white mb-2">Redeem Lypto Points</h1>
           <p className="text-gray-400">
-            Swap your loyalty points for crypto or redeem exclusive offers
+            Swap your loyalty points for crypto or redeem exclusive offers.
           </p>
         </div>
 
         {/* Crypto Swap Section */}
-        <Card className="bg-gray-900 border-gray-800 mb-8">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <ArrowLeftRight className="h-5 w-5" />
-              Crypto Swap
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Convert your loyalty points to cryptocurrencies
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* From Asset */}
-              <div className="space-y-2">
-                <label className="text-sm text-gray-300">From</label>
-                <div className="flex gap-2">
-                  <Select value={fromAsset} onValueChange={setFromAsset}>
-                    <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      {cryptoAssets.map((asset) => (
-                        <SelectItem key={asset.symbol} value={asset.symbol} className="text-white">
-                          {asset.symbol}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={fromAmount}
-                    onChange={(e) => setFromAmount(e.target.value)}
-                    className="flex-1 bg-gray-800 border-gray-700 text-white"
-                  />
+        <div className=" bg-black text-white flex items-center justify-center p-4">
+          <div className="w-full max-w-xl">
+
+            {/* Swap Container */}
+            <div className="space-y-8">
+              {/* You Pay Section */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-gray-400 text-sm font-light">
+                    <span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-white">Auto redeem on checkouts</span>
+                    <Switch
+                      checked={autoRedeemEnabled}
+                      onCheckedChange={setAutoRedeemEnabled}
+                      className="data-[state=checked]:bg-[#55efc4] data-[state=unchecked]:bg-[#fab1a0]"
+                    />
+                  </div>
                 </div>
-                {fromAsset === "ZYPTO" && (
-                  <p className="text-xs text-gray-400">Available: {userPoints} points</p>
-                )}
+                <div className="bg-[#1A1A1A] rounded-3xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                      <div className="w-10 h-10 rounded-full bg-[#fff] flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-black" fill="currentColor">
+                          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                        </svg>
+                      </div>
+                      <span className="text-2xl font-light">Lypto Points</span>
+                    </button>
+                    <div className="text-right">
+                      <div className="text-5xl font-light tracking-tight">20.20</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="text-gray-400 font-light">
+                      Balance: <span className="text-gray-400">0.00</span>{" "}
+                      <span className="text-[#2ecc71] cursor-pointer hover:opacity-80">Max</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Swap Button */}
-              <div className="flex justify-center">
-                <Button
-                  onClick={swapAssets}
-                  variant="outline"
-                  size="icon"
-                  className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
-                >
-                  <ArrowLeftRight className="h-4 w-4" />
+              {/* Swap Icon */}
+              <div className="flex justify-center -my-4 relative z-10">
+                <button className="w-14 h-14 rounded-full bg-[#1A1A1A] border-4 border-black flex items-center justify-center hover:bg-[#252525] transition-colors">
+                  <RefreshCw className="w-6 h-6 text-white" />
+                </button>
+              </div>
+
+              {/* You Receive Section */}
+              <div>
+                <div className="text-gray-400 text-sm mb-4 font-light">You Receive</div>
+                <div className="bg-[#1A1A1A] rounded-3xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                      <div className="w-10 h-10 rounded-full bg-[white] border border-gray-700 flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#000]" fill="currentColor">
+                          <path d="M3 3h4v4H3V3zm7 0h4v4h-4V3zm7 0h4v4h-4V3zM3 10h4v4H3v-4zm7 0h4v4h-4v-4zm7 0h4v4h-4v-4zM3 17h4v4H3v-4zm7 0h4v4h-4v-4z" />
+                        </svg>
+                      </div>
+                      <span className="text-2xl font-light">USDC</span>
+                    </button>
+                    <div className="text-right">
+                      <div className="text-5xl font-light tracking-tight">0.00</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="text-gray-400 font-light">
+                      Balance: <span className="text-[#2ecc71]">0.00</span>
+                    </div>
+                    <div className="text-gray-400 font-light">= $0.00</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Connect Wallet Button and Gas Fee */}
+              <div className="flex items-center justify-between gap-4 pt-4">
+                <Button className="flex-1 bg-[#fff] cursor-pointer text-black text-xl py-7 rounded-full font-light">
+                  Redeem Lypto Points
                 </Button>
-              </div>
-
-              {/* To Asset */}
-              <div className="space-y-2">
-                <label className="text-sm text-gray-300">To</label>
-                <div className="flex gap-2">
-                  <Select value={toAsset} onValueChange={setToAsset}>
-                    <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      {cryptoAssets.map((asset) => (
-                        <SelectItem key={asset.symbol} value={asset.symbol} className="text-white">
-                          {asset.symbol}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={toAmount}
-                    readOnly
-                    className="flex-1 bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-              </div>
-
-              {/* Swap Button */}
-              <Button className="w-full bg-white text-black hover:bg-gray-200 mt-6">
-                <Zap className="h-4 w-4 mr-2" />
-                Swap Now
-              </Button>
-
-              {/* Rate Info */}
-              <div className="text-center text-sm text-gray-400">
-                1 {fromAsset} = {(parseFloat(toAmount) / parseFloat(fromAmount || "1")).toFixed(6)} {toAsset}
+                <button className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+                  <Zap className="w-4 h-4" />
+                  <span className="text-sm">$0.185</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Offers Section */}
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Gift className="h-5 w-5" />
-              Exclusive Offers
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Redeem your points for amazing rewards and discounts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Auto-scrolling Carousel */}
-            <div className="relative overflow-hidden">
-              <div className="flex animate-scroll space-x-4">
-                {/* Duplicate offers for seamless loop */}
-                {[...offers, ...offers].map((offer, index) => (
-                  <Card key={`${offer.id}-${index}`} className="flex-shrink-0 w-80 bg-black border-gray-700 hover:border-gray-600 transition-colors">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{offer.image}</span>
-                          <div>
-                            <CardTitle className="text-white text-lg">{offer.title}</CardTitle>
-                            <CardDescription className="text-gray-400 text-sm">
-                              {offer.description}
-                            </CardDescription>
-                          </div>
+          </div>
+        </div>
+      </main>
+      {/* Offers Section */}
+      <Card className="bg-black border-0 mt-10 w-full">
+        <CardContent>
+          {/* Auto-scrolling Carousel */}
+          <div className="relative overflow-hidden">
+            <div className="flex animate-scroll space-x-4">
+              {/* Duplicate offers for seamless loop */}
+              {[...offers, ...offers].map((offer, index) => (
+                <Card key={`${offer.id}-${index}`} className="flex-shrink-0 w-80 bg-black border-0 cursor-pointer hover:border-gray-600 transition-colors">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">
+                          <Image
+                            src={offer.image}
+                            alt={offer.title}
+                            width={32}
+                            height={32}
+                            className="object-contain"
+                          />
                         </div>
-                        {offer.popular && (
-                          <Badge className="bg-yellow-600 text-white">
-                            <Star className="h-3 w-3 mr-1" />
-                            Popular
-                          </Badge>
+                        <div>
+                          <CardTitle className="text-white text-lg">{offer.title}</CardTitle>
+                          <CardDescription className="text-gray-400 text-sm">
+                            {offer.description}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      {offer.popular && (
+                        <Badge className="bg-yellow-600 text-white">
+                          <Star className="h-3 w-3 mr-1" />
+                          Popular
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-400">Points Required</div>
+                      <div className="text-white font-semibold">{offer.points} pts</div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-400">Value</div>
+                      <div className="text-right">
+                        {offer.discountedPrice === 0 ? (
+                          <span className="text-green-400 font-semibold">FREE</span>
+                        ) : (
+                          <div>
+                            <span className="text-gray-400 line-through text-sm">${offer.originalPrice}</span>
+                            <span className="text-white font-semibold ml-2">${offer.discountedPrice}</span>
+                          </div>
                         )}
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-400">Points Required</div>
-                        <div className="text-white font-semibold">{offer.points} pts</div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-400">Value</div>
-                        <div className="text-right">
-                          {offer.discountedPrice === 0 ? (
-                            <span className="text-green-400 font-semibold">FREE</span>
-                          ) : (
-                            <div>
-                              <span className="text-gray-400 line-through text-sm">${offer.originalPrice}</span>
-                              <span className="text-white font-semibold ml-2">${offer.discountedPrice}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                    </div>
 
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-gray-700 text-gray-300">
-                          {offer.category}
-                        </Badge>
-                        <div className="text-xs text-gray-400">
-                          Valid until {offer.validUntil}
-                        </div>
+                    <div className="flex items-center justify-between">
+                      <Badge className="bg-gray-700 text-gray-300">
+                        {offer.category}
+                      </Badge>
+                      <div className="text-xs text-gray-400">
+                        Valid until {offer.validUntil}
                       </div>
+                    </div>
 
-                      <Button 
-                        className="w-full bg-white text-black hover:bg-gray-200"
-                        disabled={userPoints < offer.points}
-                      >
-                        {userPoints >= offer.points ? "Redeem Now" : "Insufficient Points"}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    <Button
+                      className="w-full bg-white text-black hover:bg-gray-200"
+                      disabled={userPoints < offer.points}
+                    >
+                      {userPoints >= offer.points ? "Redeem Now" : "Insufficient Points"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* CSS for auto-scrolling animation */}
-        <style jsx>{`
+      {/* CSS for auto-scrolling animation */}
+      <style jsx>{`
           @keyframes scroll {
             0% {
               transform: translateX(0);
@@ -378,7 +398,6 @@ export default function RedeemPage() {
             animation-play-state: paused;
           }
         `}</style>
-      </main>
     </div>
   );
 }

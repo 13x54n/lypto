@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +20,7 @@ import {
   Award,
   Zap
 } from "lucide-react";
+import { Button } from "@/components/ui/button"
 
 export default function EarnPage() {
   const { user, loading } = useAuth();
@@ -34,6 +34,7 @@ export default function EarnPage() {
     level: "Gold"
   });
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth');
