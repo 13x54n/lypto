@@ -11,6 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { router } from 'expo-router';
+import { endpoints } from '../../constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function EmailAuthPage() {
@@ -36,16 +37,22 @@ export default function EmailAuthPage() {
     setIsLoading(true);
 
     try {
-      // Simulate API call to send OTP
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Navigate to OTP verification page with email
+      const res = await fetch(endpoints.requestOtp, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || 'Failed to send OTP');
+      }
+
       router.push({
         pathname: '/auth/otp',
         params: { email: email.trim() }
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
+      Alert.alert('Error', (error as Error).message || 'Failed to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }

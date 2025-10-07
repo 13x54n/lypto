@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
     // Exclude mobile directory from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
-      ignored: ['**/mobile/**', '**/node_modules/**'],
+      ignored: ['**/mobile/**', '**/node_modules/**', '**/backend/**'],
     };
     return config;
   },

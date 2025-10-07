@@ -12,6 +12,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+// After verifying OTP, you can optionally POST this security code to backend if needed.
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SecurityCodeSetupPage() {

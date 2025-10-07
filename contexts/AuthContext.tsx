@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { API_BASE } from '@/lib/utils';
 import { auth } from '@/lib/firebase';
 import { 
   User, 
@@ -35,7 +36,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const cred = await signInWithPopup(auth, provider);
+      const firebaseUser = cred.user;
+      if (firebaseUser?.email && firebaseUser?.uid) {
+        // Send to backend to create-or-link user and get JWT if needed
+        await fetch(`${API_BASE}/api/auth/firebase-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: firebaseUser.email, uid: firebaseUser.uid }),
+        }).catch(() => undefined);
+      }
     } catch (error) {
       console.error('Error signing in with Google:', error);
       throw error;

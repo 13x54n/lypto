@@ -5,10 +5,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  BackHandler,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import DashboardHeader from '@/components/DashboardHeader';
+import { LoyaltyPointsChart } from '@/components/ui/Chart';
 
 export default function DashboardTab() {
   return (
@@ -19,52 +18,37 @@ export default function DashboardTab() {
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>$45.20</Text>
-            <Text style={styles.statLabel}>Total Saved</Text>
+            <Text style={styles.statValue}>1,250</Text>
+            <Text style={styles.statLabel}>Total Earned Points</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>12</Text>
-            <Text style={styles.statLabel}>Transactions</Text>
+            <Text style={styles.statValue}>$127.5 </Text>
+            <Text style={styles.statLabel}>Total Saved Amount</Text>
           </View>
         </View>
 
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>3</Text>
-            <Text style={styles.statLabel}>Referrals</Text>
+            <Text style={styles.statValue}>23</Text>
+            <Text style={styles.statLabel}>Transactions this month.</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>8</Text>
-            <Text style={styles.statLabel}>Active Offers</Text>
+            <Text style={styles.statValue}>+450</Text>
+            <Text style={styles.statLabel}>Points Earned this month.</Text>
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionGrid}>
-            <TouchableOpacity style={styles.actionCard}>
-              <Text style={styles.actionIcon}>💳</Text>
-              <Text style={styles.actionText}>Redeem Points</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Text style={styles.actionIcon}>📱</Text>
-              <Text style={styles.actionText}>Share & Earn</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Text style={styles.actionIcon}>📊</Text>
-              <Text style={styles.actionText}>Analytics</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Text style={styles.actionIcon}>⚙️</Text>
-              <Text style={styles.actionText}>Settings</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Loyalty Points Chart */}
+        <LoyaltyPointsChart />
 
         {/* Recent Activity */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+            <TouchableOpacity>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.activityList}>
             <View style={styles.activityItem}>
               <View style={styles.activityIcon}>
@@ -75,7 +59,7 @@ export default function DashboardTab() {
                 <Text style={styles.activityDate}>Today, 2:30 PM</Text>
               </View>
               <View style={styles.activityAmount}>
-                <Text style={styles.activityPoints}>+50 pts</Text>
+                <Text style={[styles.activityPoints, { color: '#26de81' }]}>+50 pts</Text>
               </View>
             </View>
 
@@ -88,7 +72,7 @@ export default function DashboardTab() {
                 <Text style={styles.activityDate}>Yesterday, 7:15 PM</Text>
               </View>
               <View style={styles.activityAmount}>
-                <Text style={styles.activityPoints}>+30 pts</Text>
+                <Text style={[styles.activityPoints, { color: '#ff7675' }]}>-30 pts</Text>
               </View>
             </View>
           </View>
@@ -111,75 +95,61 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
-    marginTop: 20,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
-    padding: 20,
     borderRadius: 12,
     marginHorizontal: 4,
-    alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#55efc4',
+    color: '#26de81',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
     color: '#999',
-    textAlign: 'center',
   },
   section: {
-    marginTop: 32,
+    marginTop: 22,
+    paddingBottom: 22,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 16,
   },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  actionCard: {
-    width: '48%',
-    backgroundColor: '#1a1a1a',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  actionIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  actionText: {
+  viewAllText: {
     fontSize: 14,
-    color: '#fff',
+    color: '#000',
     fontWeight: '500',
-    textAlign: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   activityList: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#000',
     borderRadius: 12,
-    padding: 16,
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#000',
   },
   activityIcon: {
     width: 40,
     height: 40,
-    backgroundColor: '#333',
+    backgroundColor: '#000',
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -207,6 +177,5 @@ const styles = StyleSheet.create({
   activityPoints: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#55efc4',
   },
 });

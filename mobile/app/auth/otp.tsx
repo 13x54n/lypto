@@ -12,6 +12,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { endpoints } from '../../constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OTPVerificationPage() {
@@ -62,24 +63,26 @@ export default function OTPVerificationPage() {
     setIsLoading(true);
 
     try {
-      // Simulate API call to verify OTP
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simulate checking if user is new (in real app, this would come from API response)
-      const isNewUser = Math.random() > 0.5; // Random for demo purposes
-      
-      if (isNewUser) {
-        // Navigate to security code setup for new users
-        router.push({
-          pathname: '/auth/security-code',
-          params: { email }
-        });
-      } else {
-        // Navigate to dashboard for existing users
-        router.replace('/dashboard');
+      const res = await fetch(endpoints.verifyOtp, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: otpCode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Invalid OTP. Please try again.');
       }
+
+      // persist token for future requests
+      const token = data?.token as string | undefined;
+      if (token) {
+        // You might replace this with SecureStore/AsyncStorage as needed
+        // For demo, attach to a global auth context if available
+      }
+
+      router.replace('/dashboard');
     } catch (error) {
-      Alert.alert('Error', 'Invalid OTP. Please try again.');
+      Alert.alert('Error', (error as Error).message || 'Invalid OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -94,11 +97,18 @@ export default function OTPVerificationPage() {
     setOtp(['', '', '', '', '', '']);
 
     try {
-      // Simulate API call to resend OTP
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const res = await fetch(endpoints.requestOtp, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || 'Failed to resend OTP. Please try again.');
+      }
       Alert.alert('Success', 'OTP has been resent to your email');
     } catch (error) {
-      Alert.alert('Error', 'Failed to resend OTP. Please try again.');
+      Alert.alert('Error', (error as Error).message || 'Failed to resend OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }

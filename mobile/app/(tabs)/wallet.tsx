@@ -1,16 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Switch,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import DashboardHeader from '@/components/DashboardHeader';
 import { Ionicons } from '@expo/vector-icons';
+import { Colors, Typography } from '@/constants/design';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { ListItem } from '@/components/ui/ListItem';
 
 export default function WalletTab() {
+  const [autoRedeemEnabled, setAutoRedeemEnabled] = useState(false);
   const transactions = [
     {
       id: 1,
@@ -65,13 +70,13 @@ export default function WalletTab() {
   const getTransactionColor = (type: string) => {
     switch (type) {
       case 'earned':
-        return '#55efc4';
+        return Colors.primary;
       case 'bonus':
-        return '#ffd700';
+        return Colors.warning;
       case 'redeemed':
-        return '#ff6b6b';
+        return Colors.danger;
       default:
-        return '#55efc4';
+        return Colors.primary;
     }
   };
 
@@ -81,59 +86,100 @@ export default function WalletTab() {
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Balance Overview */}
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Available Balance</Text>
-          <Text style={styles.balanceAmount}>1,250 pts</Text>
-          <Text style={styles.balanceValue}>≈ $12.50</Text>
+        <View style={styles.balancesRow}>
+          <View style={styles.balanceLeft}>
+            {/* <Text style={styles.balanceLabel}>Available Balance</Text> */}
+            <Text style={styles.balanceAmount}>1,250 pts</Text>
+            <Text style={styles.balanceValue}>≈ $12.50</Text>
+          </View>
+          <View style={styles.balanceRight}>
+            <View style={styles.assetPill}>
+              <Text style={styles.assetSymbol}>USDC</Text>
+              <Text style={styles.assetAmount}>120.50</Text>
+            </View>
+            <View style={styles.assetPill}>
+              <Text style={styles.assetSymbol}>SOL</Text>
+              <Text style={styles.assetAmount}>3.25</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Filter Buttons */}
-        <View style={styles.filterContainer}>
-          <TouchableOpacity style={[styles.filterButton, styles.filterActive]}>
-            <Text style={[styles.filterText, styles.filterActiveText]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton}>
-            <Text style={styles.filterText}>Earned</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton}>
-            <Text style={styles.filterText}>Redeemed</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton}>
-            <Text style={styles.filterText}>Bonus</Text>
-          </TouchableOpacity>
+        <View style={styles.autoRedeemRow}>
+          <Text style={styles.autoRedeemText}>Auto Redeem Points</Text>
+          <Switch
+            value={autoRedeemEnabled}
+            onValueChange={setAutoRedeemEnabled}
+            style={styles.switchSmall}
+          />
         </View>
 
-        {/* Transaction List */}
+        <View style={styles.autoRedeemInfoRow}>
+          <Text style={styles.autoRedeemInfoText}>{autoRedeemEnabled ? "- Your points will be redeemed automatically." : "- Points will not be redeemed automatically."}</Text>
+        </View>
+        <View style={styles.actionsRow}>
+          <Button variant="secondary" size="sm" style={[styles.actionButton, styles.actionButtonDeposit]} onPress={() => { /* TODO: implement deposit */ }}>
+            <View style={styles.actionButtonContent}>
+              <Ionicons name="arrow-down-circle-outline" size={16} color={Colors.textPrimary} />
+              <Text style={styles.actionButtonText}>Deposit</Text>
+            </View>
+          </Button>
+          <Button variant="secondary" size="sm" style={[styles.actionButton, styles.actionButtonWithdraw]} onPress={() => { /* TODO: implement withdraw */ }}>
+            <View style={styles.actionButtonContent}>
+              <Ionicons name="arrow-up-circle-outline" size={16} color={Colors.textPrimary} />
+              <Text style={styles.actionButtonText}>Withdraw</Text>
+            </View>
+          </Button>
+        </View>
+
+        {/* Transaction History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Transaction History</Text>
-          <View style={styles.transactionList}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Transaction History</Text>
+            <Badge color="neutral">Last 30 days</Badge>
+          </View>
+        {/* Filters */}
+        <View style={styles.filtersRow}>
+          <View style={styles.filtersLeft}>
+            <Button variant="primary" size="sm">All</Button>
+            <Button variant="secondary" size="sm">Earned</Button>
+            <Button variant="secondary" size="sm">Spent</Button>
+          </View>
+          <Button variant="ghost" size="sm" onPress={() => { /* TODO: implement export */ }}>
+            <View style={styles.exportContent}>
+              <Ionicons name="download-outline" size={16} color="#000" />
+              <Text style={styles.exportText}>Export</Text>
+            </View>
+          </Button>
+        </View>
+        
+          <View style={styles.listStack}>
             {transactions.map((transaction) => (
-              <View key={transaction.id} style={styles.transactionItem}>
-                <View style={styles.transactionIcon}>
-                  <Text style={styles.transactionEmoji}>{transaction.icon}</Text>
-                </View>
-                <View style={styles.transactionDetails}>
-                  <Text style={styles.transactionTitle}>{transaction.title}</Text>
-                  <Text style={styles.transactionDate}>{transaction.date}</Text>
-                </View>
-                <View style={styles.transactionAmount}>
-                  <Text style={[
-                    styles.transactionPoints,
-                    { color: getTransactionColor(transaction.type) }
-                  ]}>
+              <ListItem
+                key={transaction.id}
+                title={transaction.title}
+                subtitle={transaction.date}
+                left={
+                  <View style={styles.leftIcon}>
+                    <Text style={styles.leftEmoji}>{transaction.icon}</Text>
+                  </View>
+                }
+                right={
+                  <Text style={[styles.pointsText, { color: getTransactionColor(transaction.type) }]}>
                     {transaction.amount}
                   </Text>
-                </View>
-              </View>
+                }
+              />
             ))}
           </View>
         </View>
 
         {/* Load More */}
-        <TouchableOpacity style={styles.loadMoreButton}>
-          <Text style={styles.loadMoreText}>Load More Transactions</Text>
-          <Ionicons name="chevron-down" size={16} color="#55efc4" />
-        </TouchableOpacity>
+        <View style={styles.loadMoreRow}>
+          <Button variant="ghost" size="md" style={styles.loadMoreButton}>
+            <Text style={styles.loadMoreText}>Load More Transactions</Text>
+            <Ionicons name="chevron-down" size={16} color={Colors.primary} />
+          </Button>
+        </View>
       </ScrollView>
     </View>
   );
@@ -142,125 +188,182 @@ export default function WalletTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: Colors.background,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  balanceCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 20,
+  balancesRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
+    justifyContent: 'space-between',
+  },
+  balanceLeft: {
+  },
+  balanceRight: {
+    flexDirection: 'column',
+    gap: 8,
   },
   balanceLabel: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: Typography.body,
+    color: Colors.textSecondary,
     marginBottom: 8,
   },
   balanceAmount: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#55efc4',
+    color: Colors.primary,
     marginBottom: 4,
   },
   balanceValue: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: Typography.title,
+    color: Colors.textMuted,
   },
-  filterContainer: {
+  assetPill: {
     flexDirection: 'row',
-    marginTop: 24,
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  assetSymbol: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    marginRight: 2,
+  },
+  assetAmount: {
+    fontSize: Typography.body,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  filtersLeft: {
+    flexDirection: 'row',
     gap: 8,
   },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  filterActive: {
-    backgroundColor: '#55efc4',
-    borderColor: '#55efc4',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#999',
-    fontWeight: '500',
-  },
-  filterActiveText: {
-    color: '#000',
-  },
+  
   section: {
-    marginTop: 24,
+    marginTop: 12,
+    // borderTopWidth: 1,
+    // borderTopColor: Colors.border,
+    paddingTop: 20,
+    
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
-    marginBottom: 16,
+    color: Colors.textPrimary,
   },
-  transactionList: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
+  listStack: {
+    gap: 8,
+    marginTop: 8,
   },
-  transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  transactionIcon: {
+  leftIcon: {
     width: 44,
     height: 44,
-    backgroundColor: '#333',
+    // backgroundColor: Colors.border,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  transactionEmoji: {
+  leftEmoji: {
     fontSize: 20,
   },
-  transactionDetails: {
-    flex: 1,
-  },
-  transactionTitle: {
-    fontSize: 16,
+  pointsText: {
+    fontSize: Typography.title,
     fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
   },
-  transactionDate: {
-    fontSize: 12,
-    color: '#999',
-  },
-  transactionAmount: {
-    alignItems: 'flex-end',
-  },
-  transactionPoints: {
-    fontSize: 16,
-    fontWeight: '600',
+  loadMoreRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 20,
   },
   loadMoreButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    marginTop: 20,
-    gap: 8,
+    gap: 10,
   },
   loadMoreText: {
-    fontSize: 14,
-    color: '#55efc4',
+    fontSize: Typography.body,
+    color: Colors.primary,
     fontWeight: '500',
+    marginRight: 4,
+  },
+  exportContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  exportText: {
+    color: "#000",
+    fontWeight: '600',
+  },
+  autoRedeemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    // justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  autoRedeemText: {
+    fontSize: 14,
+    color: Colors.textPrimary,
+    marginRight: 8,
+  },
+  switchSmall: {
+    transform: [{ scale: 0.85 }],
+  },
+  autoRedeemInfoRow: {
+    marginTop: 8,
+  },
+  autoRedeemInfoText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonDeposit: {
+    backgroundColor: 'rgba(46, 213, 115,1.0)',
+    borderWidth: 0,
+  },
+  actionButtonWithdraw: {
+    backgroundColor: 'rgba(255, 107, 129,1.0)',
+    borderWidth: 0,
+  },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    color: Colors.textPrimary,
+    fontWeight: '600',
   },
 });

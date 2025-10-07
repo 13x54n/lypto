@@ -1,1 +1,24 @@
-console.log("Hello via Bun!");
+import { Hono } from "hono";
+import { logger } from "hono/logger";
+import { cors } from "hono/cors";
+import { authRouter } from "./routes/auth";
+import { connectToDatabase } from "./config/db";
+
+const app = new Hono();
+
+app.use("*", logger());
+app.use("*", cors());
+
+app.get("/health", (c) => c.json({ ok: true }));
+app.route("/api/auth", authRouter);
+app.post("/api/auth/ping", (c) => c.json({ ok: true, route: "ping" }));
+
+const PORT = Number(process.env.PORT || 4000);
+const MONGODB_URI = process.env.MONGODB_URI || "";
+
+await connectToDatabase(MONGODB_URI);
+
+export default {
+	port: PORT,
+	fetch: app.fetch,
+};

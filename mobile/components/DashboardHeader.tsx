@@ -80,14 +80,13 @@ export default function DashboardHeader({ totalPoints, userEmail = "user@example
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#000',
-    paddingBottom: 10,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 20,
   },
   userInfo: {
     flex: 1,
