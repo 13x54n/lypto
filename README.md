@@ -1,3 +1,13 @@
+## Vercel build with Bun
+
+This project uses Bun for installs and builds.
+
+- Ensure Vercel Project Settings → General → Package Manager is set to Bun
+- The `vercel.json` is configured with:
+  - `installCommand`: `bun install`
+  - `buildCommand`: `bun install && bun run build`
+
+If deploying monorepo, make sure the root is this directory and not `mobile/`.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

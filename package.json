@@ -2,6 +2,10 @@
   "name": "lypto",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.2.18",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",

@@ -9,10 +9,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardHeaderProps {
   totalPoints: number;
-  userEmail?: string;
 }
 
 const getGreeting = () => {
@@ -29,7 +29,8 @@ const getGreeting = () => {
   }
 };
 
-export default function DashboardHeader({ totalPoints, userEmail = "user@example.com" }: DashboardHeaderProps) {
+export default function DashboardHeader({ totalPoints }: DashboardHeaderProps) {
+  const { userEmail } = useAuth();
   const handleNotificationPress = () => {
     router.push('/notifications');
   };
@@ -49,7 +50,7 @@ export default function DashboardHeader({ totalPoints, userEmail = "user@example
         {/* Left side - User info */}
         <View style={styles.userInfo}>
           <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.userEmail}>{userEmail}</Text>
+          <Text style={styles.userEmail}>{userEmail || 'Guest User'}</Text>
         </View>
 
         {/* Right side - Actions */}

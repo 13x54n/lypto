@@ -14,9 +14,11 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { endpoints } from '../../constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function OTPVerificationPage() {
   const { email } = useLocalSearchParams<{ email: string }>();
+  const { login } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [timer, setTimer] = useState(60);
@@ -73,11 +75,10 @@ export default function OTPVerificationPage() {
         throw new Error(data?.error || 'Invalid OTP. Please try again.');
       }
 
-      // persist token for future requests
+      // Save email and token to auth context
       const token = data?.token as string | undefined;
-      if (token) {
-        // You might replace this with SecureStore/AsyncStorage as needed
-        // For demo, attach to a global auth context if available
+      if (token && email) {
+        await login(email, token);
       }
 
       router.replace('/dashboard');

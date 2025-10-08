@@ -10,8 +10,18 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProfilePage() {
+  const { userEmail, logout } = useAuth();
+
+  // Get initials from email
+  const getInitials = (email: string | null) => {
+    if (!email) return 'U';
+    const name = email.split('@')[0];
+    return name.substring(0, 2).toUpperCase();
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -24,7 +34,10 @@ export default function ProfilePage() {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => router.replace('/auth/email'),
+          onPress: async () => {
+            await logout();
+            router.replace('/auth/email');
+          },
         },
       ]
     );
@@ -69,12 +82,12 @@ export default function ProfilePage() {
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>JD</Text>
+              <Text style={styles.avatarText}>{getInitials(userEmail)}</Text>
             </View>
           </View>
-          <Text style={styles.userName}>John Doe</Text>
-          <Text style={styles.userEmail}>john.doe@example.com</Text>
-          <Text style={styles.memberSince}>Member since January 2024</Text>
+          <Text style={styles.userName}>{userEmail?.split('@')[0] || 'User'}</Text>
+          <Text style={styles.userEmail}>{userEmail || 'No email'}</Text>
+          <Text style={styles.memberSince}>Member since {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
         </View>
 
         {/* Settings Sections */}
