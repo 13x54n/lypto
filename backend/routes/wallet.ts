@@ -1,4 +1,7 @@
 import { Hono } from 'hono';
+import { Template } from '@walletpass/pass-js';
+import path from 'path';
+import fs from 'fs';
 
 export const walletRouter = new Hono();
 
@@ -6,82 +9,117 @@ walletRouter.get('/pass', async (c) => {
   try {
     const email = c.req.query('email');
     const points = c.req.query('points') || '1250';
+    const userId = c.req.query('userId') || email?.replace('@', '_at_').replace(/\./g, '_');
 
     if (!email) {
       return c.json({ error: 'Email is required' }, 400);
     }
 
-    // Create a simple pass object
-    // Note: In production, you'll need actual Apple Wallet certificates
-    const passData = {
-      formatVersion: 1,
-      passTypeIdentifier: 'pass.app.zypto.loyalty',
-      serialNumber: `ZYP-${Date.now()}`,
-      teamIdentifier: 'YOUR_TEAM_ID', // Replace with your Apple Developer Team ID
-      organizationName: 'Zypto',
-      description: 'Zypto Loyalty Card',
-      logoText: 'Zypto',
+    // Check if certificates exist
+    const certsPath = path.join(process.cwd(), 'certificates');
+    const signerCertPath = path.join(certsPath, 'signerCert.pem');
+    const signerKeyPath = path.join(certsPath, 'signerKey.pem');
+
+    if (!fs.existsSync(signerCertPath) || !fs.existsSync(signerKeyPath)) {
+      return c.json({
+        error: 'Certificates not configured',
+        message: 'Please add your Apple Wallet certificates to the backend/certificates directory',
+        instructions: 'See backend/certificates/README.md for setup instructions',
+      }, 500);
+    }
+
+    // Generate unique serial number
+    const serialNumber = `LYP-${userId}-${Date.now()}`;
+
+    // Path to pass assets
+    const assetsPath = path.join(process.cwd(), 'assets', 'pass.pass');
+
+    // Step 1: Create a Template (generic style with visual background)
+    const template: any = new Template('generic', {
+      passTypeIdentifier: 'pass.xyz.minginc.lypto',
+      teamIdentifier: 'W64636R363',
+      organizationName: 'Lypto',
       foregroundColor: 'rgb(255, 255, 255)',
       backgroundColor: 'rgb(0, 0, 0)',
       labelColor: 'rgb(85, 239, 196)',
-      generic: {
-        primaryFields: [
-          {
-            key: 'points',
-            label: 'POINTS BALANCE',
-            value: points.toString(),
-          },
-        ],
-        secondaryFields: [
-          {
-            key: 'email',
-            label: 'MEMBER',
-            value: email.toString(),
-          },
-        ],
-        auxiliaryFields: [
-          {
-            key: 'value',
-            label: 'VALUE',
-            value: `$${(parseInt(points.toString()) * 0.01).toFixed(2)}`,
-          },
-        ],
-        backFields: [
-          {
-            key: 'terms',
-            label: 'Terms and Conditions',
-            value: 'Visit zypto.app/terms for full terms and conditions.',
-          },
-          {
-            key: 'support',
-            label: 'Support',
-            value: 'Email: support@zypto.app',
-          },
-        ],
-      },
-      barcode: {
-        message: `ZYPTO-${email}`,
-        format: 'PKBarcodeFormatQR',
-        messageEncoding: 'iso-8859-1',
-      },
-    };
+      
+    });
 
-    // For now, return the pass data as JSON
-    // In production, you would:
-    // 1. Create actual .pkpass file with certificates
-    // 2. Sign the pass with your Apple certificates
-    // 3. Return the binary .pkpass file
+    // Step 2: Load certificate and key into template
+    const certPem = fs.readFileSync(signerCertPath, 'utf8');
+    const keyPem = fs.readFileSync(signerKeyPath, 'utf8');
+    
+    // Set certificate and key separately
+    template.setCertificate(certPem);
+    template.setPrivateKey(keyPem, ''); // Empty string for no password
 
-    // Send JSON response for demo
-    return c.json({
-      success: true,
-      message: 'Pass generated (demo mode)',
-      passData,
-      note: 'To enable actual Apple Wallet integration, you need to:\n1. Enroll in Apple Developer Program\n2. Create Pass Type ID\n3. Generate certificates\n4. Sign the pass with certificates',
+    // Step 3: Add images to template
+    // Required images for generic pass
+    await template.images.add('icon', path.join(assetsPath, 'icon.png'));
+    await template.images.add('icon', path.join(assetsPath, 'icon@2x.png'), '2x');
+    await template.images.add('icon', path.join(assetsPath, 'icon@3x.png'), '3x');
+    await template.images.add('logo', path.join(assetsPath, 'logo.png'));
+    await template.images.add('logo', path.join(assetsPath, 'logo@2x.png'), '2x');
+    await template.images.add('logo', path.join(assetsPath, 'logo@3x.png'), '3x');
+    // Optional: Add thumbnail (appears on left side of pass)
+    await template.images.add('thumbnail', path.join(assetsPath, 'thumbnail.png'));
+    await template.images.add('thumbnail', path.join(assetsPath, 'thumbnail@2x.png'), '2x');
+    await template.images.add('thumbnail', path.join(assetsPath, 'thumbnail@3x.png'), '3x');
+
+    // Step 4: Create a pass from the template with NFC support
+    const pass: any = template.createPass({
+      serialNumber: serialNumber,
+      description: 'Lypto Pass',
+      // Add NFC support for tap-to-share
+      nfc: {
+        message: `lypto://user/${userId || 'guest'}`,
+        encryptionPublicKey: '',
+      },
+    });
+
+    // Step 5: Minimal fields - pass is primarily visual with background image
+    // Only add essential info to back of card
+    pass.backFields.add({
+      key: 'userId',
+      label: 'User ID',
+      value: (userId || 'guest').toString(),
+    });
+
+    pass.backFields.add({
+      key: 'email',
+      label: 'Email',
+      value: email.toString(),
+    });
+
+    pass.backFields.add({
+      key: 'points',
+      label: 'Points Balance',
+      value: `${points} points ($${(parseInt(points.toString()) * 0.01).toFixed(2)})`,
+    });
+
+    pass.backFields.add({
+      key: 'nfcInfo',
+      label: 'NFC Tap-to-Share',
+      value: 'Tap your pass on NFC-enabled devices to instantly share your loyalty information.',
+    });
+
+    // Step 6: Generate the .pkpass buffer
+    const buffer = await pass.asBuffer();
+
+    // Return the binary .pkpass file
+    return new Response(buffer, {
+      headers: {
+        'Content-Type': 'application/vnd.apple.pkpass',
+        'Content-Disposition': `attachment; filename="lypto_${userId}.pkpass"`,
+        'Content-Length': buffer.length.toString(),
+      },
     });
   } catch (error) {
     console.error('Error generating pass:', error);
-    return c.json({ error: 'Failed to generate pass' }, 500);
+    return c.json({ 
+      error: 'Failed to generate pass',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
   }
 });
 

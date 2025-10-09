@@ -19,9 +19,9 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ListItem } from '@/components/ui/ListItem';
 import { useAuth } from '@/contexts/AuthContext';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { endpoints } from '@/constants/api';
+import { endpoints, API_BASE } from '@/constants/api';
 
 export default function WalletTab() {
   const { userEmail } = useAuth();
@@ -109,40 +109,74 @@ export default function WalletTab() {
         );
 
         try {
-          // Call backend to get pass information
-          const passUrl = `${endpoints.walletPass}?email=${encodeURIComponent(userEmail || 'guest')}&points=1250`;
+          // Generate userId from email
+          const userId = userEmail?.replace('@', '_at_').replace(/\./g, '_') || 'guest';
           
-          // For demo mode, show the pass data from backend
-          const response = await fetch(passUrl);
-          const data = await response.json();
+          // Call backend to download the .pkpass file
+          const passUrl = `${endpoints.walletPass}?email=${encodeURIComponent(userEmail || 'guest')}&points=1250&userId=${userId}`;
           
-          if (data.success) {
-            // Show information about the pass
-            Alert.alert(
-              'Pass Ready! 📱',
-              data.message + '\n\n' + data.note,
-              [
-                {
-                  text: 'OK',
-                  style: 'default',
-                },
-              ]
-            );
-            return;
+          // Use new expo-file-system API
+          const cacheDir = Paths.cache;
+          const fileName = `lypto_${userId}.pkpass`;
+          
+          // Download the .pkpass file using new API
+          const downloadedFile = await File.downloadFileAsync(
+            passUrl,
+            new File(cacheDir, fileName),
+            { idempotent: true } // Overwrite if exists
+          );
+          
+          if (downloadedFile.exists) {
+            // Check if it's a small file (likely an error JSON response)
+            if (downloadedFile.size < 1000) {
+              try {
+                const fileContent = await downloadedFile.text();
+                const errorData = JSON.parse(fileContent);
+                if (errorData.error) {
+                  Alert.alert(
+                    'Setup Required',
+                    errorData.message || 'Please configure wallet certificates on the server.',
+                    [{ text: 'OK' }]
+                  );
+                  return;
+                }
+              } catch {
+                // Not JSON or parsing failed, continue
+              }
+            }
+            
+            // Success! Open the .pkpass file
+            const canOpen = await Linking.canOpenURL(downloadedFile.uri);
+            
+            if (canOpen) {
+              // Open directly with Wallet app
+              await Linking.openURL(downloadedFile.uri);
+              
+              Alert.alert(
+                'Success! 🎉',
+                'Opening Apple Wallet... Tap "Add" to add your Lypto card with NFC support!',
+                [{ text: 'OK' }]
+              );
+            } else {
+              // Use sharing as fallback
+              const sharingAvailable = await Sharing.isAvailableAsync();
+              if (sharingAvailable) {
+                await Sharing.shareAsync(downloadedFile.uri, {
+                  UTI: 'com.apple.pkpass',
+                  mimeType: 'application/vnd.apple.pkpass',
+                });
+              } else {
+                Alert.alert('Error', 'Unable to add pass to Wallet. Please try again.');
+              }
+            }
+          } else {
+            throw new Error('Failed to download pass');
           }
-          
-          // For demo, just skip file operations since the backend returns JSON
-          // In production with actual .pkpass files, you would:
-          // const fileUri = `${FileSystem.documentDirectory}zypto_card.pkpass`;
-          // const downloadResult = await FileSystem.downloadAsync(passUrl, fileUri);
-          // Then open or share the file
-          
-          throw new Error('Demo mode - no actual .pkpass file available');
         } catch (error) {
           console.error('Error downloading pass:', error);
           
           // Fallback: Try to open a wallet pass URL directly
-          const walletPassUrl = `https://zypto.app/wallet/pass?email=${encodeURIComponent(userEmail || 'guest')}`;
+          const walletPassUrl = `${API_BASE}/api/wallet/pass?email=${encodeURIComponent(userEmail || 'guest')}`;
           
           Linking.openURL(walletPassUrl).catch(() => {
             Alert.alert(

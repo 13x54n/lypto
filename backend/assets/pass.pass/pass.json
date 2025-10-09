@@ -1,0 +1,19 @@
+{
+  "description": "Lypto Card",
+  "formatVersion": 1,
+  "organizationName": "Lypto",
+  "passTypeIdentifier": "pass.xyz.minginc.lypto",
+  "serialNumber": "placeholder",
+  "teamIdentifier": "W64636R363",
+  "logoText": "Lypto",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "backgroundColor": "rgb(0, 0, 0)",
+  "labelColor": "rgb(85, 239, 196)",
+  "generic": {
+    "primaryFields": [],
+    "secondaryFields": [],
+    "auxiliaryFields": [],
+    "backFields": []
+  }
+}
+
