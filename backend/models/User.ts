@@ -8,6 +8,12 @@ export interface UserDocument extends Document {
 	updatedAt: Date;
 	otpCode?: string | null;
 	otpExpiresAt?: Date | null;
+	pushToken?: string | null;
+	// Circle Wallet fields
+	circleUserId?: string | null;
+	circleWalletId?: string | null;
+	circleWalletAddress?: string | null;
+	walletInitialized?: boolean;
 }
 
 const userSchema = new Schema<UserDocument>(
@@ -24,6 +30,12 @@ const userSchema = new Schema<UserDocument>(
 		firebaseUid: { type: String, required: false, default: null, index: true },
 		otpCode: { type: String, required: false, default: null },
 		otpExpiresAt: { type: Date, required: false, default: null },
+		pushToken: { type: String, required: false, default: null },
+		// Circle Wallet fields
+		circleUserId: { type: String, required: false, default: null },
+		circleWalletId: { type: String, required: false, default: null },
+		circleWalletAddress: { type: String, required: false, default: null },
+		walletInitialized: { type: Boolean, required: false, default: false },
 	},
 	{ timestamps: true }
 );

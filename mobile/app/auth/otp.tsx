@@ -81,6 +81,7 @@ export default function OTPVerificationPage() {
         await login(email, token);
       }
 
+      // Wallet is created automatically on backend - go straight to dashboard
       router.replace('/dashboard');
     } catch (error) {
       Alert.alert('Error', (error as Error).message || 'Invalid OTP. Please try again.');

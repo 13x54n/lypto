@@ -12,8 +12,12 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@circle-fin/developer-controlled-wallets": "^8.4.1",
     "@walletpass/pass-js": "^6.9.1",
+    "adm-zip": "^0.5.16",
     "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.3",
+    "expo-server-sdk": "^4.0.0",
     "hono": "^4.9.10",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",

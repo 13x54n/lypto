@@ -19,8 +19,9 @@ walletRouter.get('/pass', async (c) => {
     const certsPath = path.join(process.cwd(), 'certificates');
     const signerCertPath = path.join(certsPath, 'signerCert.pem');
     const signerKeyPath = path.join(certsPath, 'signerKey.pem');
+    const wwdrPath = path.join(certsPath, 'wwdr.pem');
 
-    if (!fs.existsSync(signerCertPath) || !fs.existsSync(signerKeyPath)) {
+    if (!fs.existsSync(signerCertPath) || !fs.existsSync(signerKeyPath) || !fs.existsSync(wwdrPath)) {
       return c.json({
         error: 'Certificates not configured',
         message: 'Please add your Apple Wallet certificates to the backend/certificates directory',
@@ -28,21 +29,25 @@ walletRouter.get('/pass', async (c) => {
       }, 500);
     }
 
+    // Load WWDR certificate and set as environment variable (required for @walletpass/pass-js)
+    const wwdrPem = fs.readFileSync(wwdrPath, 'utf8');
+    process.env.APPLE_WWDR_CERT_PEM = wwdrPem;
+
     // Generate unique serial number
     const serialNumber = `LYP-${userId}-${Date.now()}`;
 
     // Path to pass assets
     const assetsPath = path.join(process.cwd(), 'assets', 'pass.pass');
 
-    // Step 1: Create a Template (generic style with visual background)
+    // Step 1: Create a Template (generic style - more reliable)
     const template: any = new Template('generic', {
       passTypeIdentifier: 'pass.xyz.minginc.lypto',
       teamIdentifier: 'W64636R363',
       organizationName: 'Lypto',
+      description: 'Lypto Loyalty Card',
       foregroundColor: 'rgb(255, 255, 255)',
       backgroundColor: 'rgb(0, 0, 0)',
       labelColor: 'rgb(85, 239, 196)',
-      
     });
 
     // Step 2: Load certificate and key into template
@@ -61,24 +66,41 @@ walletRouter.get('/pass', async (c) => {
     await template.images.add('logo', path.join(assetsPath, 'logo.png'));
     await template.images.add('logo', path.join(assetsPath, 'logo@2x.png'), '2x');
     await template.images.add('logo', path.join(assetsPath, 'logo@3x.png'), '3x');
-    // Optional: Add thumbnail (appears on left side of pass)
+    // Optional: Add thumbnail (appears on left side of generic pass)
     await template.images.add('thumbnail', path.join(assetsPath, 'thumbnail.png'));
     await template.images.add('thumbnail', path.join(assetsPath, 'thumbnail@2x.png'), '2x');
     await template.images.add('thumbnail', path.join(assetsPath, 'thumbnail@3x.png'), '3x');
 
-    // Step 4: Create a pass from the template with NFC support
+    // Step 4: Create a pass from the template
     const pass: any = template.createPass({
       serialNumber: serialNumber,
-      description: 'Lypto Pass',
-      // Add NFC support for tap-to-share
-      nfc: {
-        message: `lypto://user/${userId || 'guest'}`,
-        encryptionPublicKey: '',
-      },
+      description: 'Lypto Card',
     });
 
-    // Step 5: Minimal fields - pass is primarily visual with background image
-    // Only add essential info to back of card
+    // Step 5: Add fields for generic pass
+    // Primary field (displays prominently on front)
+    // pass.primaryFields.add({
+    //   key: 'balance',
+    //   label: 'POINTS BALANCE',
+    //   value: `${points}`,
+    //   changeMessage: 'Your balance is now %@',
+    // });
+
+    // // Secondary field for member info
+    // pass.secondaryFields.add({
+    //   key: 'member',
+    //   label: 'MEMBER',
+    //   value: email.toString(),
+    // });
+
+    // // Auxiliary field for value
+    // pass.auxiliaryFields.add({
+    //   key: 'value',
+    //   label: 'VALUE',
+    //   value: `$${(parseInt(points.toString()) * 0.01).toFixed(2)}`,
+    // });
+
+    // Back fields for additional info
     pass.backFields.add({
       key: 'userId',
       label: 'User ID',
@@ -94,14 +116,27 @@ walletRouter.get('/pass', async (c) => {
     pass.backFields.add({
       key: 'points',
       label: 'Points Balance',
-      value: `${points} points ($${(parseInt(points.toString()) * 0.01).toFixed(2)})`,
+      value: `${points} points`,
     });
 
     pass.backFields.add({
-      key: 'nfcInfo',
-      label: 'NFC Tap-to-Share',
-      value: 'Tap your pass on NFC-enabled devices to instantly share your loyalty information.',
+      key: 'terms',
+      label: 'Terms and Conditions',
+      value: 'Visit lypto.vercel.app/terms for full terms and conditions.',
     });
+
+    pass.backFields.add({
+      key: 'support',
+      label: 'Support',
+      value: 'Email: support@lypto.app\nFor assistance, contact our support team.',
+    });
+
+    // Add QR code barcode
+    pass.barcodes = [{
+      message: `LYPTO:${userId || 'guest'}:${points}`,
+      format: 'PKBarcodeFormatQR',
+      messageEncoding: 'iso-8859-1',
+    }];
 
     // Step 6: Generate the .pkpass buffer
     const buffer = await pass.asBuffer();

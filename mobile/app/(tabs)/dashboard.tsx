@@ -10,6 +10,7 @@ import DashboardHeader from '@/components/DashboardHeader';
 import { LoyaltyPointsChart } from '@/components/ui/Chart';
 
 export default function DashboardTab() {
+
   return (
     <View style={styles.container}>
       <DashboardHeader totalPoints={1250} />

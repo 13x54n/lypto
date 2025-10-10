@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User";
 import { sendOtpEmail } from "../utils/mailer";
+import { createWalletSet, createSolanaWallet, listWallets } from "../services/circleWalletService";
 
 const registerSchema = z.object({
 	email: z.string().email(),
@@ -131,7 +132,43 @@ export async function verifyOtp(c: Context) {
 	const secret = process.env.JWT_SECRET;
 	if (!secret) return c.json({ error: "Server misconfigured" }, 500);
 	const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "7d" });
-	return c.json({ token, user: { id: user.id, email: user.email } });
+
+	// Create Circle Developer Controlled Wallet if not already done
+	try {
+		if (!user.circleWalletId) {
+			console.log(`🔐 Creating Solana wallet for ${email}...`);
+			
+			// Create wallet set
+			const walletSetId = await createWalletSet(user.id);
+			
+			// Create Solana wallet
+			const wallet = await createSolanaWallet(walletSetId, 'SOL-DEVNET');
+			
+			// Save wallet info to database
+			user.circleUserId = walletSetId; // Store wallet set ID as user ID
+			user.circleWalletId = wallet.id;
+			user.circleWalletAddress = wallet.address;
+			user.walletInitialized = true;
+			await user.save();
+			
+			console.log(`✅ Solana wallet created for ${email}: ${wallet.address}`);
+		} else {
+			console.log(`ℹ️  User ${email} already has wallet: ${user.circleWalletAddress}`);
+		}
+	} catch (error) {
+		console.error('❌ Error creating Circle wallet:', error);
+		// Don't block login if Circle wallet fails
+	}
+
+	return c.json({ 
+		token, 
+		user: { 
+			id: user.id, 
+			email: user.email,
+			walletAddress: user.circleWalletAddress,
+			walletInitialized: user.walletInitialized,
+		},
+	});
 }
 
 export async function firebaseLogin(c: Context) {
@@ -153,6 +190,30 @@ export async function firebaseLogin(c: Context) {
 	if (!secret) return c.json({ error: "Server misconfigured" }, 500);
 	const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "7d" });
 	return c.json({ token, user: { id: user.id, email: user.email }, isNew });
+}
+
+export async function savePushToken(c: Context) {
+	const body = await c.req.json().catch(() => undefined);
+	if (!body || !body.email || !body.pushToken) {
+		return c.json({ error: "Invalid payload" }, 400);
+	}
+
+	const { email, pushToken } = body;
+
+	try {
+		const user = await User.findOne({ email });
+		if (!user) {
+			return c.json({ error: "User not found" }, 404);
+		}
+
+		user.pushToken = pushToken;
+		await user.save();
+
+		return c.json({ ok: true, message: "Push token saved" });
+	} catch (error) {
+		console.error('Error saving push token:', error);
+		return c.json({ error: "Failed to save push token" }, 500);
+	}
 }
 
 

@@ -5,4 +5,6 @@ export const endpoints = {
 	verifyOtp: `${API_BASE}/api/auth/verify-otp`,
 	walletPass: `${API_BASE}/api/wallet/pass`,
 	googleWalletPass: `${API_BASE}/api/wallet/google-pass`,
+	pendingPayments: `${API_BASE}/api/merchant/pending-payments`,
+	confirmPayment: `${API_BASE}/api/merchant/confirm-payment`,
 };
