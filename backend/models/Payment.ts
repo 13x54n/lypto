@@ -77,7 +77,6 @@ const paymentSchema = new Schema<IPayment>(
 		expiresAt: { 
 			type: Date, 
 			required: true,
-			index: true,
 		},
 	},
 	{
@@ -89,7 +88,8 @@ const paymentSchema = new Schema<IPayment>(
 paymentSchema.index({ userEmail: 1, createdAt: -1 });
 paymentSchema.index({ merchantEmail: 1, createdAt: -1 });
 paymentSchema.index({ status: 1, createdAt: -1 });
-paymentSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // Auto-delete expired payments
+// TTL index for auto-deletion of expired payments
+paymentSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export const Payment = model<IPayment>("Payment", paymentSchema);
 
