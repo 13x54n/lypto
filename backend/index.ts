@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { cors } from "hono/cors";
@@ -6,6 +7,8 @@ import { walletRouter } from "./routes/wallet";
 import { merchantRouter } from "./routes/merchant";
 import { circleRouter } from "./routes/circle";
 import { connectToDatabase } from "./config/db";
+
+dotenv.config();
 
 const app = new Hono();
 
