@@ -14,9 +14,10 @@ interface Transaction {
 }
 
 interface Stats {
-  today: { count: number; total: number };
-  week: { count: number; total: number };
-  month: { count: number; total: number };
+  today: { count: number; total: number; lyptoMinted: number };
+  week: { count: number; total: number; lyptoMinted: number };
+  month: { count: number; total: number; lyptoMinted: number };
+  allTime?: { lyptoMinted: number };
 }
 
 export default function TransactionsScreen() {
@@ -328,11 +329,41 @@ export default function TransactionsScreen() {
           </View>
 
           {stats && (
-            <View style={styles.statsContainer}>
-              {renderStatCard('Today', stats.today.count, stats.today.total, 'today-outline')}
-              {renderStatCard('This Week', stats.week.count, stats.week.total, 'calendar-outline')}
-              {renderStatCard('This Month', stats.month.count, stats.month.total, 'stats-chart-outline')}
-            </View>
+            <>
+              <View style={styles.statsContainer}>
+                {renderStatCard('Today', stats.today.count, stats.today.total, 'today-outline')}
+                {renderStatCard('This Week', stats.week.count, stats.week.total, 'calendar-outline')}
+                {renderStatCard('This Month', stats.month.count, stats.month.total, 'stats-chart-outline')}
+              </View>
+              
+              {/* LYPTO Stats */}
+              <View style={styles.lyptoStatsCard}>
+                <View style={styles.lyptoHeader}>
+                  <Ionicons name="diamond" size={28} color="#55efc4" />
+                  <Text style={styles.lyptoTitle}>LYPTO Rewards Distributed</Text>
+                </View>
+                <View style={styles.lyptoStatsRow}>
+                  <View style={styles.lyptoStatItem}>
+                    <Text style={styles.lyptoStatLabel}>Today</Text>
+                    <Text style={styles.lyptoStatValue}>{stats.today.lyptoMinted || 0}</Text>
+                  </View>
+                  <View style={styles.lyptoStatItem}>
+                    <Text style={styles.lyptoStatLabel}>This Week</Text>
+                    <Text style={styles.lyptoStatValue}>{stats.week.lyptoMinted || 0}</Text>
+                  </View>
+                  <View style={styles.lyptoStatItem}>
+                    <Text style={styles.lyptoStatLabel}>This Month</Text>
+                    <Text style={styles.lyptoStatValue}>{stats.month.lyptoMinted || 0}</Text>
+                  </View>
+                  {stats.allTime && (
+                    <View style={styles.lyptoStatItem}>
+                      <Text style={styles.lyptoStatLabel}>All Time</Text>
+                      <Text style={styles.lyptoStatValue}>{stats.allTime.lyptoMinted || 0}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </>
           )}
 
           <View style={styles.listHeader}>
@@ -954,5 +985,47 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: '600',
     fontSize: 16,
+  },
+  
+  // LYPTO Stats Styles
+  lyptoStatsCard: {
+    backgroundColor: '#111',
+    borderRadius: 15,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(85, 239, 196, 0.2)',
+  },
+  lyptoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 12,
+  },
+  lyptoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  lyptoStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    gap: 15,
+  },
+  lyptoStatItem: {
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  lyptoStatLabel: {
+    fontSize: 11,
+    color: '#999',
+    marginBottom: 6,
+  },
+  lyptoStatValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#55efc4',
   },
 });

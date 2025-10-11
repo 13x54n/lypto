@@ -16,6 +16,7 @@
     "@walletpass/pass-js": "^6.9.1",
     "adm-zip": "^0.5.16",
     "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "expo-server-sdk": "^4.0.0",
     "hono": "^4.9.10",
@@ -23,6 +24,7 @@
     "mongoose": "^8.19.1",
     "nodemailer": "^7.0.9",
     "sharp": "^0.34.4",
+    "socket.io": "^4.8.1",
     "zod": "^4.1.12"
   },
   "scripts": {

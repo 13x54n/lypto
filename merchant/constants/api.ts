@@ -12,5 +12,8 @@ export const endpoints = {
   getTransactions: `${API_BASE}/api/merchant/transactions`,
   getStats: `${API_BASE}/api/merchant/stats`,
   confirmPayment: `${API_BASE}/api/merchant/confirm-payment`,
+  lyptoBalance: `${API_BASE}/api/merchant/lypto-balance`,
+  userTransactions: `${API_BASE}/api/merchant/user-transactions`,
+  realtime: `${API_BASE}/api/merchant/realtime`,
 };
 

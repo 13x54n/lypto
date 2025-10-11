@@ -7,4 +7,7 @@ export const endpoints = {
 	googleWalletPass: `${API_BASE}/api/wallet/google-pass`,
 	pendingPayments: `${API_BASE}/api/merchant/pending-payments`,
 	confirmPayment: `${API_BASE}/api/merchant/confirm-payment`,
+	lyptoBalance: `${API_BASE}/api/merchant/lypto-balance`,
+	userTransactions: `${API_BASE}/api/merchant/user-transactions`,
+	realtime: `${API_BASE}/api/merchant/realtime`,
 };

@@ -1,248 +1,241 @@
-# 🏪 Lypto Merchant App
+# 🏪 Lypto Merchant - POS App
 
-Mobile app for merchants to scan customer passes, create payment requests, and manage transactions.
+## Overview
 
-## ✨ Features
+Point-of-sale mobile app for merchants to accept payments and distribute LYPTO crypto rewards to customers.
 
-### 🎯 Core Functionality
-- **QR Code Scanner** - Scan customer Lypto passes with camera
-- **Payment Requests** - Create payment requests with custom amounts
-- **Push Notifications** - Send payment confirmations to customers (future)
-- **Transaction History** - View all transactions with status
-- **Dashboard Stats** - Today/Week/Month transaction statistics
-- **Email OTP Authentication** - Secure merchant login
+**Features:**
+- 📷 QR code scanner for customer passes
+- 💳 Payment request creation
+- 📊 Real-time transaction dashboard
+- 🪙 LYPTO rewards distribution tracking
+- 📱 Push notifications
+- 📈 Daily/Weekly/Monthly stats
 
-### 📱 Screens
+---
 
-1. **Scanner (Home)**
-   - Camera view with QR code scanning
-   - Flash toggle
-   - Amount input modal
-   - Create payment requests
+## 🚀 Quick Start
 
-2. **History**
-   - Transaction list with status (pending/confirmed/declined)
-   - Daily/weekly/monthly stats
-   - Pull to refresh
-   - Empty state
-
-3. **Settings**
-   - Merchant profile
-   - Logout functionality
-   - Account settings
-
-4. **Auth**
-   - Email OTP login
-   - Same authentication as customer app
-
-## 🚀 Getting Started
-
-### Prerequisites
+### Development:
 ```bash
-# Install dependencies
 cd merchant
 npm install
-```
-
-### Run the App
-```bash
-# Start development server
 npm start
-
-# Run on iOS
-npm run ios
-
-# Run on Android
-npm run android
 ```
 
-## 🔌 API Integration
-
-### Base URL
-```typescript
-const API_BASE = 'http://localhost:4000';
+### Build for iOS:
+```bash
+npx expo prebuild
+npx expo run:ios
 ```
 
-### Endpoints
-
-#### Authentication
-```typescript
-POST /api/auth/request-otp
-POST /api/auth/verify-otp
+### Production Build:
+```bash
+eas build --profile production --platform ios
 ```
 
-#### Merchant Operations
-```typescript
-// Create payment request
-POST /api/merchant/create-payment
-Body: {
-  userId: string,
-  userEmail: string,
-  amount: number,
-  merchantEmail: string
-}
+---
 
-// Get transactions
-GET /api/merchant/transactions?merchantEmail={email}
+## 🎨 Branding
 
-// Get stats
-GET /api/merchant/stats?merchantEmail={email}
+### Logo:
+- **Inverted from mobile app** ✅
+- **White background** (vs mobile's black)
+- Differentiated for merchants
+- Professional appearance
 
-// Confirm payment (called by customer app)
-POST /api/merchant/confirm-payment
-Body: {
-  paymentId: string,
-  status: 'confirmed' | 'declined'
-}
-```
+### Theme:
+- UI: Dark (#000 background)
+- Accent: #55efc4 (mint green)
+- Cards: #111 (dark gray)
+- Text: White primary, #999 secondary
 
-## 📊 Data Flow
+---
 
-### Payment Request Flow
-
-```
-1. Merchant scans customer QR code
-   ↓
-2. QR code parsed: LYPTO:userId:points
-   ↓
-3. Merchant enters payment amount
-   ↓
-4. POST /api/merchant/create-payment
-   ↓
-5. Payment request created (pending)
-   ↓
-6. Push notification sent to customer
-   ↓
-7. Customer confirms/declines in mobile app
-   ↓
-8. POST /api/merchant/confirm-payment
-   ↓
-9. Transaction status updated
-   ↓
-10. Both apps updated
-```
-
-## 🎨 Design System
-
-### Colors
-```typescript
-const colors = {
-  primary: '#55efc4',      // Mint green
-  background: '#000',      // Black
-  surface: '#111',         // Dark gray
-  text: '#fff',            // White
-  textSecondary: '#999',   // Gray
-  error: '#ff6b6b',        // Red
-};
-```
-
-### Components
-- Modal with slide animation
-- Camera overlay with corner indicators
-- Transaction cards with status badges
-- Stat cards with icons
-
-## 📁 Project Structure
+## 📁 Structure
 
 ```
 merchant/
 ├── app/
 │   ├── (tabs)/
-│   │   ├── index.tsx          # Scanner screen
-│   │   ├── history.tsx        # Transaction history
-│   │   ├── settings.tsx       # Settings
-│   │   └── _layout.tsx        # Tab navigation
+│   │   ├── index.tsx          # Transactions & Scanner
+│   │   └── settings.tsx       # Merchant settings
 │   ├── auth/
-│   │   ├── login.tsx          # Email login
+│   │   ├── login.tsx          # Email input
 │   │   └── otp.tsx            # OTP verification
-│   └── _layout.tsx            # Root layout with auth
+│   └── _layout.tsx            # Root layout
 ├── contexts/
 │   └── AuthContext.tsx        # Authentication state
 ├── constants/
 │   └── api.ts                 # API endpoints
-├── assets/                    # Images and icons
+├── assets/
+│   └── images/                # Inverted logos ✅
 ├── app.json                   # Expo configuration
-└── package.json
+└── eas.json                   # Build configuration
 ```
-
-## 🔒 Authentication
-
-Uses the same email OTP system as the customer app:
-1. Merchant enters email
-2. OTP sent to email
-3. Merchant enters 6-digit code
-4. Token stored in AsyncStorage
-5. Protected routes require authentication
-
-## 📸 Camera Permissions
-
-### iOS
-```xml
-<key>NSCameraUsageDescription</key>
-<string>We need camera access to scan customer QR codes</string>
-```
-
-### Android
-```xml
-<uses-permission android:name="android.permission.CAMERA" />
-```
-
-## 🧪 Testing
-
-### Test Flow
-1. Start backend: `cd backend && npm run dev`
-2. Start merchant app: `cd merchant && npm start`
-3. Login with test merchant email
-4. Scan customer pass QR code
-5. Enter payment amount
-6. Create payment request
-7. View in history
-
-### Test Data
-```typescript
-// Customer QR code format
-"LYPTO:userId:points"
-// Example: "LYPTO:test_at_example_com:1250"
-
-// Test merchant email
-"merchant@test.com"
-```
-
-## 🚧 Future Enhancements
-
-- [ ] Real push notifications (Expo Notifications)
-- [ ] Real-time payment confirmations (WebSocket)
-- [ ] Transaction filters and search
-- [ ] Export transactions
-- [ ] Multiple merchant locations
-- [ ] Customer lookup
-- [ ] Offline mode
-- [ ] Receipt printing
-
-## 🔗 Related Apps
-
-- **Mobile App** (`/mobile`) - Customer-facing app
-- **Backend** (`/backend`) - API server
-- **Web** (`/app`) - Web dashboard
-
-## 📝 Notes
-
-- Currently uses in-memory storage (replace with database)
-- Push notifications are placeholder (implement with Expo Notifications)
-- Transaction data is shared with backend
-- Uses same auth system as customer app
-
-## 🛠 Tech Stack
-
-- **Framework**: React Native + Expo
-- **Router**: Expo Router
-- **Camera**: expo-camera
-- **Storage**: AsyncStorage
-- **HTTP**: Fetch API
-- **Notifications**: expo-notifications (planned)
-- **State**: React Context API
 
 ---
 
-Built with ❤️ for Lypto merchants
+## 🔌 API Integration
 
+### Endpoints Used:
+```typescript
+POST /api/auth/request-otp
+POST /api/auth/verify-otp
+POST /api/merchant/create-payment
+POST /api/merchant/confirm-payment
+GET  /api/merchant/transactions
+GET  /api/merchant/stats
+GET  /api/merchant/realtime
+```
+
+---
+
+## 🎯 Key Features
+
+### 1. Authentication
+- Email OTP login
+- JWT token storage
+- Auto Solana wallet creation
+
+### 2. QR Scanner
+- expo-camera integration
+- LYPTO QR code validation
+- Flash toggle
+- Smart filtering (ignores invalid QR)
+
+### 3. Payment Flow
+- FAB to initiate
+- Amount modal
+- QR scanner activation
+- Real-time waiting screen
+- Success/decline confirmation
+
+### 4. Dashboard
+- Transaction history
+- Daily/Weekly/Monthly stats
+- LYPTO distribution tracking
+- Pull to refresh
+
+### 5. Real-time Updates
+- Payment status changes
+- LYPTO minting notifications
+- Server-Sent Events (SSE)
+
+---
+
+## 🔐 Permissions
+
+### iOS (Info.plist):
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Lypto Merchant needs camera access to scan customer QR codes and process payments</string>
+```
+
+### Android (AndroidManifest.xml):
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.VIBRATE" />
+```
+
+---
+
+## 📊 Stats Tracked
+
+```javascript
+{
+  today: {
+    count: 2,              // Transactions
+    total: 20.00,          // Revenue
+    lyptoMinted: 40        // Rewards distributed
+  },
+  week: { /* ... */ },
+  month: { /* ... */ },
+  allTime: {
+    lyptoMinted: 460       // Total LYPTO distributed ever
+  }
+}
+```
+
+---
+
+## 🧪 Testing
+
+### Test locally:
+```bash
+npm start
+# Scan QR in Expo Go
+```
+
+### Test on device:
+```bash
+npx expo prebuild
+npx expo run:ios --device
+```
+
+### Test payment flow:
+1. Login merchant
+2. Tap FAB (+)
+3. Enter $10.00
+4. Scan customer QR
+5. Customer authorizes
+6. ✅ See confirmation + stats update
+
+---
+
+## 🎨 Assets (Inverted)
+
+All assets are **inverted** from mobile app:
+- ✅ icon.png - WHITE background
+- ✅ splash-icon.png - Inverted colors
+- ✅ notification-icon.png - Inverted
+- ✅ Android adaptive icons - Inverted
+
+**Generated using:** `/scripts/create-merchant-assets.js`
+
+---
+
+## 🚀 Deploy to App Store
+
+```bash
+# 1. Configure EAS
+eas build:configure
+
+# 2. Build production
+eas build --profile production --platform ios
+
+# 3. Submit to App Store
+eas submit --platform ios
+
+# 4. Monitor in App Store Connect
+```
+
+---
+
+## 📖 Documentation
+
+- **APP_STORE_DEPLOYMENT.md** - Complete deployment guide
+- **SYSTEM_SUMMARY.md** - Overall system architecture
+- **COMPLETE_INTEGRATION.md** - Technical integration details
+
+---
+
+## ✅ Production Checklist
+
+- [x] Inverted logo assets
+- [x] App.json configured
+- [x] Bundle identifier set
+- [x] Camera permissions
+- [x] Notifications configured
+- [x] EAS config ready
+- [x] API endpoints working
+- [x] Real-time updates
+- [x] LYPTO stats tracking
+- [ ] Production API URL
+- [ ] EAS project created
+- [ ] TestFlight testing
+- [ ] App Store submission
+
+---
+
+**Merchant app is ready for App Store with inverted WHITE logo!** ✅📱

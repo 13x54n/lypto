@@ -14,6 +14,11 @@ export interface UserDocument extends Document {
 	circleWalletId?: string | null;
 	circleWalletAddress?: string | null;
 	walletInitialized?: boolean;
+	// LYPTO Token fields
+	lyptoBalance?: number; // Current LYPTO balance (cached from blockchain)
+	totalLyptoEarned?: number; // All-time LYPTO earned
+	lastLyptoSync?: Date; // Last time balance was synced from blockchain
+	points?: number; // Legacy points system (can migrate to LYPTO)
 }
 
 const userSchema = new Schema<UserDocument>(
@@ -34,8 +39,13 @@ const userSchema = new Schema<UserDocument>(
 		// Circle Wallet fields
 		circleUserId: { type: String, required: false, default: null },
 		circleWalletId: { type: String, required: false, default: null },
-		circleWalletAddress: { type: String, required: false, default: null },
+		circleWalletAddress: { type: String, required: false, default: null, index: true },
 		walletInitialized: { type: Boolean, required: false, default: false },
+		// LYPTO Token fields
+		lyptoBalance: { type: Number, required: false, default: 0 },
+		totalLyptoEarned: { type: Number, required: false, default: 0 },
+		lastLyptoSync: { type: Date, required: false, default: null },
+		points: { type: Number, required: false, default: 0 },
 	},
 	{ timestamps: true }
 );
