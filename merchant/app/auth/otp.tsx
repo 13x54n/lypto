@@ -90,7 +90,7 @@ export default function OTPScreen() {
       </TouchableOpacity>
 
       <View style={styles.header}>
-        <Ionicons name="mail-outline" size={60} color="#55efc4" />
+        <Ionicons name="mail-outline" size={60} color="#fff" />
         <Text style={styles.title}>Enter OTP</Text>
         <Text style={styles.subtitle}>
           We sent a code to {email}
@@ -101,7 +101,9 @@ export default function OTPScreen() {
         {otp.map((digit, index) => (
           <TextInput
             key={index}
-            ref={(ref) => (inputRefs.current[index] = ref)}
+            ref={(ref) => {
+              inputRefs.current[index] = ref;
+            }}
             style={[styles.otpInput, digit && styles.otpInputFilled]}
             value={digit}
             onChangeText={(value) => handleOTPChange(value, index)}
@@ -124,7 +126,6 @@ export default function OTPScreen() {
         ) : (
           <>
             <Text style={styles.buttonText}>Verify</Text>
-            <Ionicons name="checkmark-circle" size={20} color="#000" />
           </>
         )}
       </TouchableOpacity>
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
     borderColor: '#55efc4',
   },
   button: {
-    backgroundColor: '#55efc4',
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',

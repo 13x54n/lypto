@@ -71,22 +71,38 @@ export default function TransactionsScreen() {
 
   const loadData = async () => {
     try {
+      console.log('[Merchant] Loading data for:', merchantEmail);
+      console.log('[Merchant] Transactions URL:', `${endpoints.getTransactions}?merchantEmail=${merchantEmail}`);
+      console.log('[Merchant] Stats URL:', `${endpoints.getStats}?merchantEmail=${merchantEmail}`);
+      
       const [transactionsRes, statsRes] = await Promise.all([
-        fetch(`${endpoints.getTransactions}?merchantEmail=${merchantEmail}`),
-        fetch(`${endpoints.getStats}?merchantEmail=${merchantEmail}`),
+        fetch(`${endpoints.getTransactions}?merchantEmail=${merchantEmail}`).catch(err => {
+          console.error('[Merchant] Transactions fetch error:', err);
+          return { ok: false };
+        }),
+        fetch(`${endpoints.getStats}?merchantEmail=${merchantEmail}`).catch(err => {
+          console.error('[Merchant] Stats fetch error:', err);
+          return { ok: false };
+        }),
       ]);
 
       if (transactionsRes.ok) {
         const transactionsData = await transactionsRes.json();
+        console.log('[Merchant] Loaded', transactionsData.transactions?.length || 0, 'transactions');
         setTransactions(transactionsData.transactions || []);
+      } else {
+        console.warn('[Merchant] Transactions request failed');
       }
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
+        console.log('[Merchant] Stats loaded:', statsData);
         setStats(statsData);
+      } else {
+        console.warn('[Merchant] Stats request failed');
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('[Merchant] Error loading data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -337,7 +353,7 @@ export default function TransactionsScreen() {
               </View>
               
               {/* LYPTO Stats */}
-              <View style={styles.lyptoStatsCard}>
+              {/* <View style={styles.lyptoStatsCard}>
                 <View style={styles.lyptoHeader}>
                   <Ionicons name="diamond" size={28} color="#55efc4" />
                   <Text style={styles.lyptoTitle}>LYPTO Rewards Distributed</Text>
@@ -362,7 +378,7 @@ export default function TransactionsScreen() {
                     </View>
                   )}
                 </View>
-              </View>
+              </View> */}
             </>
           )}
 

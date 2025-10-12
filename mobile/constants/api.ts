@@ -1,4 +1,7 @@
-export const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "http://10.0.0.144:4000";
+// API_BASE is configured via environment variables
+// Development: Set EXPO_PUBLIC_API_BASE in app.json
+// Production: Set in eas.json build profiles
+export const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "http://localhost:4000";
 
 export const endpoints = {
 	requestOtp: `${API_BASE}/api/auth/request-otp`,
@@ -10,4 +13,7 @@ export const endpoints = {
 	lyptoBalance: `${API_BASE}/api/merchant/lypto-balance`,
 	userTransactions: `${API_BASE}/api/merchant/user-transactions`,
 	realtime: `${API_BASE}/api/merchant/realtime`,
+	analyticsMonthly: `${API_BASE}/api/merchant/analytics/monthly`,
+	analyticsDaily: `${API_BASE}/api/merchant/analytics/daily`,
+	analyticsStats: `${API_BASE}/api/merchant/analytics/stats`,
 };

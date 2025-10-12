@@ -1,67 +1,145 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-
-// Function to generate last 12 months of data
-const generateLast12MonthsData = () => {
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-  ];
-  
-  const currentDate = new Date();
-  const data = [];
-  
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-    const monthIndex = date.getMonth();
-    const monthName = months[monthIndex];
-    
-    // Generate realistic loyalty points data (random but trending upward)
-    const basePoints = 800 + (11 - i) * 50; // Base trend upward
-    const variation = Math.floor(Math.random() * 200) - 100; // Random variation
-    const points = Math.max(100, basePoints + variation); // Minimum 100 points
-    
-    data.push({
-      month: monthName,
-      points: points,
-    });
-  }
-  
-  return data;
-};
+import { useAuth } from '@/contexts/AuthContext';
+import { endpoints } from '@/constants/api';
 
 interface ChartProps {
   width?: number;
   height?: number;
 }
 
+interface MonthData {
+  month: string;
+  year: number;
+  points: number;
+  cumulativeLypto: number;
+}
+
 export function LoyaltyPointsChart({ width, height }: ChartProps) {
-  const chartData = useMemo(() => generateLast12MonthsData(), []);
-  
+  const { userEmail } = useAuth();
+  const [chartData, setChartData] = useState<MonthData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [userEmail]);
+
+  const fetchAnalytics = async () => {
+    try {
+      console.log('[Chart] Fetching analytics from:', `${endpoints.analyticsMonthly}?email=${userEmail}`);
+      
+      const response = await fetch(`${endpoints.analyticsMonthly}?email=${userEmail}`).catch(err => {
+        console.error('[Chart] Fetch error:', err);
+        throw err;
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[Chart] Analytics data:', data);
+        
+        if (data.analytics && data.analytics.length > 0) {
+          // User has data - show only their months
+          console.log('[Chart] Showing', data.analytics.length, 'months of data');
+          setChartData(data.analytics);
+        } else {
+          // New user - show current month with 0 points
+          console.log('[Chart] New user - showing current month with 0');
+          const currentDate = new Date();
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          setChartData([{
+            month: monthNames[currentDate.getMonth()],
+            year: currentDate.getFullYear(),
+            points: 0,
+            cumulativeLypto: 0,
+          }]);
+        }
+      } else {
+        console.warn('[Chart] Response not OK:', response.status);
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error) {
+      console.error('[Chart] Error fetching analytics:', error);
+      // Show current month with 0 on error
+      const currentDate = new Date();
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      setChartData([{
+        month: monthNames[currentDate.getMonth()],
+        year: currentDate.getFullYear(),
+        points: 0,
+        cumulativeLypto: 0,
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Loyalty Points Trend</Text>
+        </View>
+        <View style={[styles.chartContainer, { height: height || 220, justifyContent: 'center' }]}>
+          <ActivityIndicator size="small" color="#55efc4" />
+        </View>
+      </View>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return null; // Don't show chart if no data
+  }
+
   const currentMonth = chartData[chartData.length - 1];
-  const previousMonth = chartData[chartData.length - 2];
-  const growthPercentage = previousMonth ? 
-    (((currentMonth.points - previousMonth.points) / previousMonth.points) * 100).toFixed(1) : "0.0";
+  const previousMonth = chartData.length > 1 ? chartData[chartData.length - 2] : null;
   
-  const isTrendUp = currentMonth.points > previousMonth.points;
+  let growthPercentage = "0.0";
+  let isTrendUp = true;
+  
+  if (previousMonth && previousMonth.points > 0) {
+    const growth = ((currentMonth.points - previousMonth.points) / previousMonth.points) * 100;
+    growthPercentage = growth.toFixed(1);
+    isTrendUp = growth >= 0;
+  } else if (currentMonth.points > 0) {
+    isTrendUp = true;
+    growthPercentage = "100.0";
+  }
+  
   const lineColor = isTrendUp ? "rgba(38, 222, 129, 1.0)" : "rgba(255, 118, 117, 1.0)";
   
   const screenWidth = Dimensions.get('window').width;
-  const chartWidth = width || screenWidth // Account for horizontal padding
+  const chartWidth = width || screenWidth;
   const chartHeight = height || 220;
 
+  // Ensure we have at least 2 data points for the chart
+  let displayData = [...chartData];
+  if (displayData.length === 1) {
+    // Add a previous month with 0 to show progression
+    const currentDate = new Date();
+    const prevDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    displayData = [
+      {
+        month: monthNames[prevDate.getMonth()],
+        year: prevDate.getFullYear(),
+        points: 0,
+        cumulativeLypto: 0,
+      },
+      ...displayData
+    ];
+  }
+
   const data = {
-    labels: chartData.map(item => item.month),
+    labels: displayData.map(item => item.month),
     datasets: [
-        {
-          data: chartData.map(item => item.points),
-          color: (opacity = 1) => lineColor,
-          strokeWidth: 2,
-        },
+      {
+        data: displayData.map(item => item.points),
+        color: (opacity = 1) => lineColor,
+        strokeWidth: 2,
+      },
     ],
   };
-
 
   const chartConfig = {
     backgroundColor: '#000000',
@@ -69,26 +147,29 @@ export function LoyaltyPointsChart({ width, height }: ChartProps) {
     backgroundGradientTo: '#000000',
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    
-    labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`, // Gray labels
+    labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
     style: {
       borderRadius: 16,
     },
     propsForDots: {
-      r: '0', // Hide dots
+      r: '0',
     },
     propsForBackgroundLines: {
-      strokeDasharray: '', // Solid lines
-      stroke: '#000000', // Gray grid lines
+      strokeDasharray: '',
+      stroke: '#000000',
       strokeWidth: 1,
     },
   };
+
+  const timeRange = chartData.length === 1 ? "This month" : 
+                   chartData.length <= 3 ? `Last ${chartData.length} months` :
+                   "Last 12 months";
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Loyalty Points Trend</Text>
-        <Text style={styles.subtitle}>Last 12 months</Text>
+        <Text style={styles.subtitle}>{timeRange}</Text>
       </View>
       
       <View style={styles.chartContainer}>
@@ -108,12 +189,12 @@ export function LoyaltyPointsChart({ width, height }: ChartProps) {
       <View style={styles.footer}>
         <View style={styles.growthContainer}>
           <Text style={styles.growthText}>
-            Trending up by {growthPercentage}% this month
+            {isTrendUp ? 'Trending up' : 'Trending down'} by {Math.abs(parseFloat(growthPercentage))}%
           </Text>
-          <Text style={styles.growthIcon}>📈</Text>
+          <Text style={styles.growthIcon}>{isTrendUp ? '📈' : '📉'}</Text>
         </View>
         <Text style={styles.description}>
-          Showing loyalty points earned over the last 12 months.
+          Showing LYPTO points earned {chartData.length === 1 ? 'this month' : `over ${chartData.length} months`}.
         </Text>
       </View>
     </View>

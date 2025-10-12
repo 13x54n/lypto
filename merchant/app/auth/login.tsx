@@ -40,7 +40,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <Ionicons name="storefront" size={60} color="#55efc4" />
+          <Ionicons name="storefront" size={60} color="#fff" />
         </View>
         <Text style={styles.title}>Lypto Merchant</Text>
         <Text style={styles.subtitle}>Sign in to your merchant account</Text>
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     borderColor: '#333',
   },
   button: {
-    backgroundColor: '#55efc4',
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',

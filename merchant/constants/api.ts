@@ -1,6 +1,8 @@
 // API Configuration
-// Use your local network IP address (same as mobile app)
-export const API_BASE = process.env.EXPO_PUBLIC_API_BASE || 'http://10.0.0.144:4000';
+// API_BASE is configured via environment variables
+// Development: Set EXPO_PUBLIC_API_BASE in app.json
+// Production: Set in eas.json build profiles
+export const API_BASE = process.env.EXPO_PUBLIC_API_BASE || 'http://localhost:4000';
 
 export const endpoints = {
   // Auth endpoints

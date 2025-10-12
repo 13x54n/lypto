@@ -146,7 +146,7 @@ export default function RedeemTab() {
         </View>
 
         {/* Popular Section */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Popular Rewards</Text>
             <TouchableOpacity>
@@ -172,7 +172,7 @@ export default function RedeemTab() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </View>
+        </View> */}
 
         {/* All Rewards */}
         <View style={styles.section}>
@@ -408,6 +408,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
+    marginBottom: 16,
   },
   seeAllText: {
     fontSize: 14,

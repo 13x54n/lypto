@@ -60,7 +60,7 @@ async function main() {
     
     const tx = await program.methods
       .initialize()
-      .accounts({
+      .accountsPartial({
         programState: programStatePda,
         lyptoMint: lyptoMintPda,
         authority: authority.publicKey,

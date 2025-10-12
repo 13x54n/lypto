@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 13.2.5"
+    "version": ">= 13.2.5",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -8,18 +9,24 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "http://10.0.0.144:4000"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "https://api.lypto.minginc.xyz"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_BASE": "https://your-production-api.com"
+        "EXPO_PUBLIC_API_BASE": "https://api.lypto.minginc.xyz"
       }
     }
   },

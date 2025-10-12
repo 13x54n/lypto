@@ -4,14 +4,15 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DashboardHeader from '@/components/DashboardHeader';
+import { LoyaltyPointsChart } from '@/components/ui/Chart';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE } from '@/constants/api';
-import { Colors } from '@/constants/Colors';
 
 interface Transaction {
   id: string;
@@ -27,7 +28,6 @@ export default function DashboardTab() {
   const { userEmail } = useAuth();
   const [lyptoBalance, setLyptoBalance] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
-  const [walletAddress, setWalletAddress] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,24 +38,38 @@ export default function DashboardTab() {
 
   const loadDashboardData = async () => {
     try {
-      const [balanceRes, transactionsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/merchant/lypto-balance?email=${userEmail}`),
-        fetch(`${API_BASE}/api/merchant/user-transactions?userEmail=${userEmail}`),
-      ]);
+      console.log('[Dashboard] Fetching data from:', API_BASE);
+      console.log('[Dashboard] User email:', userEmail);
+      
+        const [balanceRes, transactionsRes] = await Promise.all([
+            fetch(`${API_BASE}/api/merchant/lypto-balance?email=${userEmail}`).catch(err => {
+                console.error('[Dashboard] Balance fetch error:', err);
+                return null;
+            }),
+            fetch(`${API_BASE}/api/merchant/user-transactions?userEmail=${userEmail}`).catch(err => {
+                console.error('[Dashboard] Transactions fetch error:', err);
+                return null;
+            }),
+        ]);
 
-      if (balanceRes.ok) {
-        const balanceData = await balanceRes.json();
-        setLyptoBalance(balanceData.balance || 0);
-        setTotalEarned(balanceData.totalEarned || 0);
-        setWalletAddress(balanceData.walletAddress || '');
-      }
+        if (balanceRes?.ok) {
+            const balanceData = await balanceRes.json();
+            console.log('[Dashboard] Balance data:', balanceData);
+            setLyptoBalance(balanceData.balance || 0);
+            setTotalEarned(balanceData.totalEarned || 0);
+        } else {
+            console.warn('[Dashboard] Balance request failed');
+        }
 
-      if (transactionsRes.ok) {
-        const transactionsData = await transactionsRes.json();
-        setTransactions(transactionsData.transactions || []);
-      }
+        if (transactionsRes?.ok) {
+            const transactionsData = await transactionsRes.json();
+            console.log('[Dashboard] Transactions:', transactionsData.transactions?.length || 0);
+            setTransactions(transactionsData.transactions || []);
+        } else {
+            console.warn('[Dashboard] Transactions request failed');
+        }
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error('[Dashboard] Error loading data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -67,190 +81,151 @@ export default function DashboardTab() {
     loadDashboardData();
   };
 
-  const formatAddress = (address: string) => {
-    if (!address) return '';
-    return `${address.substring(0, 4)}...${address.substring(address.length - 4)}`;
-  };
+  // Calculate stats from transactions
+  const confirmedTransactions = transactions.filter(t => t.status === 'confirmed');
+  const thisMonthTransactions = transactions.filter(t => {
+    const txDate = new Date(t.createdAt);
+    const now = new Date();
+    return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
+  });
+  
+  const totalPoints = lyptoBalance;
+  const totalSaved = lyptoBalance * 0.01; // 1 LYPTO = $0.01
+  const monthlyTransactions = thisMonthTransactions.length;
+  const monthlyPoints = thisMonthTransactions.reduce((sum, t) => sum + (t.lyptoMinted ? t.lyptoReward : 0), 0);
 
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color="#55efc4" />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Welcome back</Text>
-          <Text style={styles.email}>{userEmail}</Text>
-        </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <DashboardHeader totalPoints={totalPoints} />
       
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#55efc4" />
         }
       >
-        {/* LYPTO Balance Card */}
-        <View style={styles.lyptoCard}>
-          <View style={styles.lyptoHeader}>
-            <View style={styles.lyptoIconContainer}>
-              <Ionicons name="diamond" size={32} color="#55efc4" />
-            </View>
-            <View style={styles.lyptoInfo}>
-              <Text style={styles.lyptoLabel}>LYPTO Balance</Text>
-              {walletAddress && (
-                <Text style={styles.walletAddress}>{formatAddress(walletAddress)}</Text>
-              )}
-            </View>
-          </View>
-          
-          <View style={styles.lyptoBalanceContainer}>
-            <Text style={styles.lyptoBalance}>{lyptoBalance.toLocaleString()}</Text>
-            <Text style={styles.lyptoSymbol}>LYPTO</Text>
-          </View>
-          
-          <View style={styles.lyptoValueContainer}>
-            <Text style={styles.lyptoValue}>≈ ${(lyptoBalance * 0.01).toFixed(2)} USD</Text>
-            <Text style={styles.lyptoRate}>1 LYPTO = $0.01</Text>
-          </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.earnedContainer}>
-            <View style={styles.earnedItem}>
-              <Text style={styles.earnedLabel}>Total Earned</Text>
-              <Text style={styles.earnedValue}>{totalEarned} LYPTO</Text>
-            </View>
-            <View style={styles.earnedItem}>
-              <Text style={styles.earnedLabel}>Worth</Text>
-              <Text style={styles.earnedValue}>${(totalEarned * 0.01).toFixed(2)}</Text>
-            </View>
-          </View>
-        </View>
-
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Ionicons name="receipt-outline" size={24} color="#55efc4" />
-            <Text style={styles.statValue}>{transactions.length}</Text>
-            <Text style={styles.statLabel}>Transactions</Text>
+            <Text style={styles.statValue}>{totalPoints.toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Total LYPTO Points</Text>
           </View>
-          
           <View style={styles.statCard}>
-            <Ionicons name="trending-up-outline" size={24} color="#55efc4" />
-            <Text style={styles.statValue}>
-              {transactions.filter(t => t.status === 'confirmed').length}
-            </Text>
-            <Text style={styles.statLabel}>Confirmed</Text>
-          </View>
-          
-          <View style={styles.statCard}>
-            <Ionicons name="sparkles-outline" size={24} color="#55efc4" />
-            <Text style={styles.statValue}>
-              {transactions.reduce((sum, t) => sum + (t.lyptoMinted ? t.lyptoReward : 0), 0)}
-            </Text>
-            <Text style={styles.statLabel}>LYPTO Earned</Text>
+            <Text style={styles.statValue}>${totalSaved.toFixed(2)}</Text>
+            <Text style={styles.statLabel}>Total Saved Amount</Text>
           </View>
         </View>
 
-        {/* How It Works */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoHeader}>
-            <Ionicons name="information-circle-outline" size={24} color="#55efc4" />
-            <Text style={styles.infoTitle}>Earn 2% LYPTO on Every Purchase!</Text>
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{monthlyTransactions}</Text>
+            <Text style={styles.statLabel}>Transactions this month</Text>
           </View>
-          <Text style={styles.infoText}>
-            Make purchases at participating merchants and automatically earn LYPTO tokens worth 2% of your purchase amount.
-          </Text>
-          <View style={styles.infoExamples}>
-            <View style={styles.infoExample}>
-              <Text style={styles.infoExampleAmount}>$10</Text>
-              <Ionicons name="arrow-forward" size={16} color="#999" />
-              <Text style={styles.infoExampleReward}>20 LYPTO</Text>
-            </View>
-            <View style={styles.infoExample}>
-              <Text style={styles.infoExampleAmount}>$50</Text>
-              <Ionicons name="arrow-forward" size={16} color="#999" />
-              <Text style={styles.infoExampleReward}>100 LYPTO</Text>
-            </View>
-            <View style={styles.infoExample}>
-              <Text style={styles.infoExampleAmount}>$100</Text>
-              <Ionicons name="arrow-forward" size={16} color="#999" />
-              <Text style={styles.infoExampleReward}>200 LYPTO</Text>
-            </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>+{monthlyPoints}</Text>
+            <Text style={styles.statLabel}>Points earned this month</Text>
           </View>
         </View>
 
-        {/* Recent Transactions */}
+        {/* Loyalty Points Chart */}
+        <LoyaltyPointsChart />
+
+        {/* Recent Activity */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            {transactions.length > 0 && (
-              <TouchableOpacity>
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
           </View>
           
           {transactions.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="receipt-outline" size={60} color="#666" />
-              <Text style={styles.emptyTitle}>No Transactions Yet</Text>
-              <Text style={styles.emptyText}>
-                Make your first purchase to start earning LYPTO rewards!
-              </Text>
+              <Text style={styles.emptyText}>No transactions yet</Text>
+              <Text style={styles.emptySubtext}>Make your first purchase to start earning LYPTO!</Text>
             </View>
           ) : (
             <View style={styles.activityList}>
-              {transactions.slice(0, 10).map((tx) => (
-                <View key={tx.id} style={styles.activityItem}>
-                  <View style={styles.activityIcon}>
-                    <Ionicons 
-                      name={tx.status === 'confirmed' ? 'checkmark-circle' : 'close-circle'} 
-                      size={32} 
-                      color={tx.status === 'confirmed' ? '#55efc4' : '#ff6b6b'} 
-                    />
+              {transactions.slice(0, 5).map((transaction) => {
+                const merchantName = transaction.merchantEmail.split('@')[0];
+                const emoji = getEmojiForMerchant(merchantName);
+                const isPositive = transaction.status === 'confirmed';
+                const pointsChange = isPositive ? `+${transaction.lyptoReward}` : `-${transaction.lyptoReward}`;
+                
+                return (
+                  <View key={transaction.id} style={styles.activityItem}>
+                    <View style={styles.activityIcon}>
+                      <Text style={styles.activityEmoji}>{emoji}</Text>
+                    </View>
+                    <View style={styles.activityDetails}>
+                      <Text style={styles.activityTitle}>
+                        {merchantName.charAt(0).toUpperCase() + merchantName.slice(1)}
+                      </Text>
+                      <Text style={styles.activityDate}>
+                        {formatDate(transaction.createdAt)}
+                      </Text>
+                    </View>
+                    <View style={styles.activityAmount}>
+                      <Text style={[
+                        styles.activityPoints, 
+                        { color: isPositive ? '#26de81' : '#ff7675' }
+                      ]}>
+                        {pointsChange} pts
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.activityDetails}>
-                    <Text style={styles.activityTitle}>{tx.merchantEmail}</Text>
-                    <Text style={styles.activityDate}>
-                      {new Date(tx.createdAt).toLocaleString()}
-                    </Text>
-                    {tx.lyptoMinted && (
-                      <View style={styles.lyptoRewardBadge}>
-                        <Ionicons name="diamond" size={12} color="#55efc4" />
-                        <Text style={styles.lyptoRewardText}>+{tx.lyptoReward} LYPTO</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.activityAmount}>
-                    <Text style={styles.activityAmountText}>${tx.amount.toFixed(2)}</Text>
-                    <Text style={[
-                      styles.activityStatus,
-                      tx.status === 'confirmed' && styles.statusConfirmed,
-                      tx.status === 'declined' && styles.statusDeclined,
-                    ]}>
-                      {tx.status.toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>
       </ScrollView>
     </View>
   );
+}
+
+// Helper function to get emoji based on merchant name
+function getEmojiForMerchant(merchantName: string): string {
+  const name = merchantName.toLowerCase();
+  if (name.includes('coffee') || name.includes('starbucks')) return '☕';
+  if (name.includes('food') || name.includes('restaurant')) return '🍔';
+  if (name.includes('uber') || name.includes('taxi')) return '🚗';
+  if (name.includes('shop') || name.includes('store')) return '🛍️';
+  if (name.includes('gas') || name.includes('fuel')) return '⛽';
+  if (name.includes('hotel')) return '🏨';
+  return '🏪'; // Default store emoji
+}
+
+// Helper function to format date
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) {
+    const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `Today, ${time}`;
+  }
+  if (diffDays === 1) {
+    const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `Yesterday, ${time}`;
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 const styles = StyleSheet.create({
@@ -262,202 +237,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  greeting: {
-    fontSize: 16,
-    color: '#999',
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#111',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  
-  // LYPTO Card Styles
-  lyptoCard: {
-    backgroundColor: '#111',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(85, 239, 196, 0.2)',
-  },
-  lyptoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  lyptoIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(85, 239, 196, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  lyptoInfo: {
-    flex: 1,
-  },
-  lyptoLabel: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 4,
-  },
-  walletAddress: {
-    fontSize: 12,
-    color: '#666',
-    fontFamily: 'monospace',
-  },
-  lyptoBalanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 8,
-  },
-  lyptoBalance: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginRight: 12,
-  },
-  lyptoSymbol: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#55efc4',
-  },
-  lyptoValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  lyptoValue: {
-    fontSize: 16,
-    color: '#999',
-  },
-  lyptoRate: {
-    fontSize: 12,
-    color: '#666',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#222',
-    marginVertical: 16,
-  },
-  earnedContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  earnedItem: {
-    alignItems: 'center',
-  },
-  earnedLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 6,
-  },
-  earnedValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#55efc4',
-  },
-  
-  // Stats Cards
   statsContainer: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
     backgroundColor: '#111',
-    borderRadius: 15,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 4,
     alignItems: 'center',
-    gap: 8,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
+    marginBottom: 8,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#999',
     textAlign: 'center',
   },
-  
-  // Info Card
-  infoCard: {
-    backgroundColor: '#111',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    flex: 1,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#999',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  infoExamples: {
-    gap: 10,
-  },
-  infoExample: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  infoExampleAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    width: 50,
-    textAlign: 'right',
-  },
-  infoExampleReward: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#55efc4',
-    width: 100,
-  },
-  
-  // Transactions Section
   section: {
+    marginTop: 24,
     marginBottom: 30,
   },
   sectionHeader: {
@@ -480,13 +289,22 @@ const styles = StyleSheet.create({
   },
   activityItem: {
     flexDirection: 'row',
-    backgroundColor: '#111',
-    borderRadius: 15,
-    padding: 16,
     alignItems: 'center',
+    backgroundColor: '#111',
+    borderRadius: 16,
+    padding: 16,
   },
   activityIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
+  },
+  activityEmoji: {
+    fontSize: 24,
   },
   activityDetails: {
     flex: 1,
@@ -500,64 +318,30 @@ const styles = StyleSheet.create({
   activityDate: {
     fontSize: 12,
     color: '#999',
-    marginBottom: 6,
-  },
-  lyptoRewardBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(85, 239, 196, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  lyptoRewardText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#55efc4',
   },
   activityAmount: {
     alignItems: 'flex-end',
   },
-  activityAmountText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  activityStatus: {
-    fontSize: 10,
+  activityPoints: {
+    fontSize: 16,
     fontWeight: '600',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  statusConfirmed: {
-    backgroundColor: 'rgba(85, 239, 196, 0.2)',
-    color: '#55efc4',
-  },
-  statusDeclined: {
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    color: '#ff6b6b',
   },
   emptyState: {
     alignItems: 'center',
     padding: 40,
     backgroundColor: '#111',
-    borderRadius: 15,
+    borderRadius: 16,
   },
-  emptyTitle: {
+  emptyText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
     marginTop: 16,
     marginBottom: 8,
   },
-  emptyText: {
+  emptySubtext: {
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
-    lineHeight: 20,
   },
 });

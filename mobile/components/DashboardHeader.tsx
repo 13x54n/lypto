@@ -55,16 +55,16 @@ export default function DashboardHeader({ totalPoints }: DashboardHeaderProps) {
 
         {/* Right side - Actions */}
         <View style={styles.actions}>
-          <TouchableOpacity 
+          {/* <TouchableOpacity 
             style={styles.iconButton} 
             onPress={handleNotificationPress}
           >
             <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {/* Notification badge */}
+            
             <View style={styles.notificationBadge}>
               <Text style={styles.badgeText}>3</Text>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity 
             style={styles.iconButton} 

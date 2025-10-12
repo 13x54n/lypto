@@ -13,7 +13,10 @@ dotenv.config();
 const app = new Hono();
 
 app.use("*", logger());
-app.use("*", cors());
+app.use("*", cors({
+	origin: '*', // Allow all origins in development
+	credentials: true,
+}));
 
 app.get("/health", (c) => c.json({ ok: true }));
 app.route("/api/auth", authRouter);
@@ -29,10 +32,11 @@ await connectToDatabase(MONGODB_URI);
 
 export default {
 	port: PORT,
+	hostname: '0.0.0.0', // Listen on all network interfaces (not just localhost)
 	fetch: (req: Request) => {
 		const url = new URL(req.url)
 		url.protocol =
 			req.headers.get('x-forwarded-proto') ?? url.protocol
-		return app.fetch(new Request(url, req))
+		return app.fetch(new Request(url.toString(), req))
 	},
 };

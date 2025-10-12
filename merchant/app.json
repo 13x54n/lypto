@@ -28,7 +28,9 @@
       "versionCode": 1,
       "permissions": [
         "CAMERA",
-        "NOTIFICATIONS"
+        "NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -72,7 +74,7 @@
       "EXPO_PUBLIC_API_BASE": "http://10.0.0.144:4000",
       "router": {},
       "eas": {
-        "projectId": "merchant-project-id-here"
+        "projectId": "ba59a7c1-f709-4482-9a9d-a005ebeffe73"
       }
     },
     "owner": "not.so.lexy"

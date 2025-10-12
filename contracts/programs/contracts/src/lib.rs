@@ -38,9 +38,6 @@ pub mod contracts {
         require!(amount_in_cents > 0, LyptoError::InvalidAmount);
         require!(transaction_id.len() > 0, LyptoError::InvalidTransactionId);
 
-        let program_state = &mut ctx.accounts.program_state;
-        let transaction = &mut ctx.accounts.transaction;
-
         // Calculate reward: 2% of transaction amount
         let reward_amount = (amount_in_cents * REWARD_RATE_BPS) / BPS_DENOMINATOR;
         
@@ -51,6 +48,7 @@ pub mod contracts {
         msg!("  Customer: {}", ctx.accounts.customer.key());
 
         // Store transaction data
+        let transaction = &mut ctx.accounts.transaction;
         transaction.transaction_id = transaction_id;
         transaction.customer = ctx.accounts.customer.key();
         transaction.merchant = ctx.accounts.merchant.key();
@@ -60,9 +58,10 @@ pub mod contracts {
         transaction.bump = ctx.bumps.transaction;
 
         // Mint LYPTO tokens to customer
+        let program_state_bump = ctx.accounts.program_state.bump;
         let seeds = &[
             b"program-state".as_ref(),
-            &[program_state.bump],
+            &[program_state_bump],
         ];
         let signer = &[&seeds[..]];
 
@@ -78,6 +77,7 @@ pub mod contracts {
         token::mint_to(cpi_ctx, reward_amount)?;
 
         // Update global stats
+        let program_state = &mut ctx.accounts.program_state;
         program_state.total_rewards_minted += reward_amount;
         program_state.total_transactions += 1;
 
@@ -170,10 +170,9 @@ pub struct ProcessPayment<'info> {
     /// CHECK: This is safe as we only use it as a key
     pub customer: AccountInfo<'info>,
     
-    /// Customer's LYPTO token account
+    /// Customer's LYPTO token account (must exist)
     #[account(
-        init_if_needed,
-        payer = merchant,
+        mut,
         associated_token::mint = lypto_mint,
         associated_token::authority = customer
     )]

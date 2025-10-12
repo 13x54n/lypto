@@ -3,6 +3,7 @@ import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 import { User } from '../models/User';
 import { Payment } from '../models/Payment';
 import { realtimeService } from '../services/realtimeService';
+import { updateAnalytics, getUserMonthlyAnalytics, getUserDailyAnalytics, getUserStats } from '../services/analyticsService';
 
 export const merchantRouter = new Hono();
 
@@ -196,6 +197,15 @@ merchantRouter.post('/confirm-payment', async (c) => {
 				await customer.save();
 			}
 		}
+		
+		// Update analytics (daily and monthly)
+		await updateAnalytics(payment.userEmail, {
+			amount: payment.amount,
+			lyptoReward: payment.lyptoReward,
+			lyptoMinted: payment.lyptoMinted,
+			status: payment.status as 'confirmed' | 'declined',
+			confirmedAt: payment.confirmedAt || new Date(),
+		});
 
 		// Send notification to merchant
 		try {
@@ -533,4 +543,65 @@ merchantRouter.get('/realtime', async (c) => {
 merchantRouter.get('/realtime-stats', async (c) => {
 	const stats = realtimeService.getStats();
 	return c.json(stats);
+});
+
+// Get user's monthly analytics (for chart)
+merchantRouter.get('/analytics/monthly', async (c) => {
+	try {
+		const email = c.req.query('email');
+
+		if (!email) {
+			return c.json({ error: 'Email required' }, 400);
+		}
+
+		const analytics = await getUserMonthlyAnalytics(email);
+		
+		return c.json({
+			analytics,
+			count: analytics.length,
+		});
+	} catch (error) {
+		console.error('Error fetching monthly analytics:', error);
+		return c.json({ error: 'Failed to fetch analytics' }, 500);
+	}
+});
+
+// Get user's daily analytics
+merchantRouter.get('/analytics/daily', async (c) => {
+	try {
+		const email = c.req.query('email');
+		const days = parseInt(c.req.query('days') || '30');
+
+		if (!email) {
+			return c.json({ error: 'Email required' }, 400);
+		}
+
+		const analytics = await getUserDailyAnalytics(email, days);
+		
+		return c.json({
+			analytics,
+			count: analytics.length,
+		});
+	} catch (error) {
+		console.error('Error fetching daily analytics:', error);
+		return c.json({ error: 'Failed to fetch analytics' }, 500);
+	}
+});
+
+// Get user stats summary
+merchantRouter.get('/analytics/stats', async (c) => {
+	try {
+		const email = c.req.query('email');
+
+		if (!email) {
+			return c.json({ error: 'Email required' }, 400);
+		}
+
+		const stats = await getUserStats(email);
+		
+		return c.json(stats);
+	} catch (error) {
+		console.error('Error fetching user stats:', error);
+		return c.json({ error: 'Failed to fetch stats' }, 500);
+	}
 });

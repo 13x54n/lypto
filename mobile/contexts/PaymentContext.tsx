@@ -32,7 +32,12 @@ export function PaymentProvider({ children }: { children: React.ReactNode }) {
 
     const checkForPayments = async () => {
       try {
-        const response = await fetch(`${endpoints.pendingPayments}?userEmail=${userEmail}`);
+        const response = await fetch(`${endpoints.pendingPayments}?userEmail=${userEmail}`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
         if (response.ok) {
           const data = await response.json();
           
@@ -64,7 +69,8 @@ export function PaymentProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('Error checking for payments:', error);
+        // Silently fail - don't spam console during development
+        // Uncomment for debugging: console.error('Error checking for payments:', error);
       }
     };
 
