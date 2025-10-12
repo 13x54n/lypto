@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { Expo, ExpoPushMessage } from 'expo-server-sdk';
+import { Expo } from 'expo-server-sdk';
+import type { ExpoPushMessage } from 'expo-server-sdk';
 import { User } from '../models/User';
 import { Payment } from '../models/Payment';
 import { realtimeService } from '../services/realtimeService';
@@ -10,8 +11,8 @@ export const merchantRouter = new Hono();
 // Initialize Expo push notification client
 const expo = new Expo();
 
-// LYPTO minting (will be enabled when contract is deployed)
-const ENABLE_LYPTO_MINTING = false; // Set to true after deploying contract
+// LYPTO minting (configured via environment variable)
+const ENABLE_LYPTO_MINTING = process.env.ENABLE_LYPTO_MINTING === 'true';
 let mintLyptoReward: any = null;
 let getLyptoBalance: any = null;
 
@@ -21,7 +22,13 @@ if (ENABLE_LYPTO_MINTING) {
 		mintLyptoReward = module.mintLyptoReward;
 		getLyptoBalance = module.getLyptoBalance;
 		console.log('✅ LYPTO minting enabled');
+		console.log(`   Program ID: ${process.env.LYPTO_PROGRAM_ID}`);
+		console.log(`   Mint Address: ${process.env.LYPTO_MINT_ADDRESS}`);
+	}).catch(error => {
+		console.error('❌ Failed to load LYPTO service:', error);
 	});
+} else {
+	console.log('ℹ️  LYPTO minting disabled (set ENABLE_LYPTO_MINTING=true in .env to enable)');
 }
 
 // Create payment request
@@ -55,9 +62,9 @@ merchantRouter.post('/create-payment', async (c) => {
 		// Create payment in MongoDB
 		const payment = new Payment({
 			transactionId,
-			userId: user._id.toString(),
+			userId: (user._id as any).toString(),
 			userEmail,
-			merchantId: merchant._id.toString(),
+			merchantId: (merchant._id as any).toString(),
 			merchantEmail,
 			amount: parseFloat(amount),
 			amountInCents,
@@ -77,7 +84,7 @@ merchantRouter.post('/create-payment', async (c) => {
 		// Send push notification to user's mobile app
 		try {
 			if (user.pushToken && Expo.isExpoPushToken(user.pushToken)) {
-				const message: ExpoPushMessage = {
+				const message: ExpoPushMessage & { categoryIdentifier?: string } = {
 					to: user.pushToken,
 					sound: 'default',
 					title: '💳 Payment Request',
