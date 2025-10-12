@@ -30,7 +30,6 @@
         "CAMERA",
         "NOTIFICATIONS",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
