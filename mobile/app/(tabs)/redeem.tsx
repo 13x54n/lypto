@@ -14,65 +14,10 @@ export default function RedeemTab() {
   const [autoRedeemEnabled, setAutoRedeemEnabled] = useState(false)
   const [fromAmount, setFromAmount] = useState('20.20')
   const [toAmount, setToAmount] = useState('0.00')
-  const redeemOptions = [
-    {
-      id: 1,
-      title: 'Starbucks Gift Card',
-      points: 500,
-      value: '$5.00',
-      icon: '☕',
-      category: 'Food & Drink',
-      popular: true,
-    },
-    {
-      id: 2,
-      title: 'Amazon Gift Card',
-      points: 1000,
-      value: '$10.00',
-      icon: '🛒',
-      category: 'Shopping',
-      popular: false,
-    },
-    {
-      id: 3,
-      title: 'Uber Credits',
-      points: 750,
-      value: '$7.50',
-      icon: '🚗',
-      category: 'Transportation',
-      popular: true,
-    },
-    {
-      id: 4,
-      title: 'Netflix Subscription',
-      points: 1500,
-      value: '$15.00',
-      icon: '📺',
-      category: 'Entertainment',
-      popular: false,
-    },
-    {
-      id: 5,
-      title: 'Spotify Premium',
-      points: 800,
-      value: '$8.00',
-      icon: '🎵',
-      category: 'Entertainment',
-      popular: false,
-    },
-    {
-      id: 6,
-      title: 'Apple App Store',
-      points: 1200,
-      value: '$12.00',
-      icon: '📱',
-      category: 'Digital',
-      popular: false,
-    },
-  ];
+  // Empty array - no rewards available yet
+  const redeemOptions: any[] = [];
 
   const handleRedeem = (option: any) => {
-    // TODO: Implement redeem functionality
     console.log('Redeeming:', option.title);
   };
 
@@ -177,28 +122,41 @@ export default function RedeemTab() {
         {/* All Rewards */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>All Rewards</Text>
-          <View style={styles.rewardsGrid}>
-            {redeemOptions.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={styles.rewardItem}
-                onPress={() => handleRedeem(option)}
-              >
-                <View style={styles.rewardIconContainer}>
-                  <Text style={styles.rewardIconLarge}>{option.icon}</Text>
-                </View>
-                <View style={styles.rewardDetails}>
-                  <Text style={styles.rewardTitleLarge}>{option.title}</Text>
-                  <Text style={styles.rewardCategoryLarge}>{option.category}</Text>
-                  <View style={styles.rewardFooter}>
-                    <Text style={styles.rewardPointsLarge}>{option.points} pts</Text>
-                    <Text style={styles.rewardValueLarge}>{option.value}</Text>
+          {redeemOptions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="gift-outline" size={64} color="#333" />
+              <Text style={styles.emptyStateTitle}>No Rewards Available</Text>
+              <Text style={styles.emptyStateText}>
+                Check back soon for exciting redemption options!
+              </Text>
+              <Text style={styles.emptyStateSubtext}>
+                We're working on adding gift cards, exclusive deals, and more ways to use your LYPTO tokens.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.rewardsGrid}>
+              {redeemOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={styles.rewardItem}
+                  onPress={() => handleRedeem(option)}
+                >
+                  <View style={styles.rewardIconContainer}>
+                    <Text style={styles.rewardIconLarge}>{option.icon}</Text>
                   </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <View style={styles.rewardDetails}>
+                    <Text style={styles.rewardTitleLarge}>{option.title}</Text>
+                    <Text style={styles.rewardCategoryLarge}>{option.category}</Text>
+                    <View style={styles.rewardFooter}>
+                      <Text style={styles.rewardPointsLarge}>{option.points} pts</Text>
+                      <Text style={styles.rewardValueLarge}>{option.value}</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#666" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -409,6 +367,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     marginBottom: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+    gap: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+    marginTop: 16,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: 8,
   },
   seeAllText: {
     fontSize: 14,

@@ -109,25 +109,29 @@ export function LoyaltyPointsChart({ width, height }: ChartProps) {
   const lineColor = isTrendUp ? "rgba(38, 222, 129, 1.0)" : "rgba(255, 118, 117, 1.0)";
   
   const screenWidth = Dimensions.get('window').width;
+  // Always use full container width (dashboard has 20px padding on each side)
   const chartWidth = width || screenWidth;
   const chartHeight = height || 220;
 
-  // Ensure we have at least 2 data points for the chart
+  // Ensure we have at least 6 data points for the chart to fill width nicely
   let displayData = [...chartData];
-  if (displayData.length === 1) {
-    // Add a previous month with 0 to show progression
-    const currentDate = new Date();
-    const prevDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+  const minPoints = 6;
+  
+  if (displayData.length < minPoints) {
+    // Add previous months with 0 to pad the chart
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    displayData = [
-      {
+    const pointsToAdd = minPoints - displayData.length;
+    
+    for (let i = pointsToAdd; i > 0; i--) {
+      const currentDate = new Date();
+      const prevDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      displayData.unshift({
         month: monthNames[prevDate.getMonth()],
         year: prevDate.getFullYear(),
         points: 0,
         cumulativeLypto: 0,
-      },
-      ...displayData
-    ];
+      });
+    }
   }
 
   const data = {
@@ -161,8 +165,9 @@ export function LoyaltyPointsChart({ width, height }: ChartProps) {
     },
   };
 
-  const timeRange = chartData.length === 1 ? "This month" : 
-                   chartData.length <= 3 ? `Last ${chartData.length} months` :
+  const timeRange = chartData.length === 0 ? "No data" :
+                   chartData.length === 1 ? "This month" : 
+                   chartData.length <= 6 ? `Last ${chartData.length} months` :
                    "Last 12 months";
 
   return (
@@ -183,6 +188,7 @@ export function LoyaltyPointsChart({ width, height }: ChartProps) {
           withDots={false}
           withShadow={false}
           withScrollableDot={false}
+          segments={4}
         />
       </View>
       
@@ -194,7 +200,7 @@ export function LoyaltyPointsChart({ width, height }: ChartProps) {
           <Text style={styles.growthIcon}>{isTrendUp ? '📈' : '📉'}</Text>
         </View>
         <Text style={styles.description}>
-          Showing LYPTO points earned {chartData.length === 1 ? 'this month' : `over ${chartData.length} months`}.
+          Showing LYPTO points earned over the last {displayData.length} months.
         </Text>
       </View>
     </View>
@@ -209,6 +215,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 16,
+    // paddingHorizontal: 16,
   },
   title: {
     fontSize: 18,
@@ -221,14 +228,17 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   chartContainer: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     marginBottom: 16,
+    width: '100%',
+    overflow: 'hidden',
   },
   chart: {
     borderRadius: 12,
   },
   footer: {
     gap: 8,
+    paddingHorizontal: 16,
   },
   growthContainer: {
     flexDirection: 'row',

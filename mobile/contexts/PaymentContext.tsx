@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { endpoints } from '@/constants/api';
 
@@ -22,6 +22,17 @@ export function PaymentProvider({ children }: { children: React.ReactNode }) {
   const { userEmail, isAuthenticated } = useAuth();
   const [currentPayment, setCurrentPayment] = useState<PaymentRequest | null>(null);
   const [shownPaymentIds, setShownPaymentIds] = useState<Set<string>>(new Set());
+  const currentPaymentRef = useRef<PaymentRequest | null>(null);
+  const shownPaymentIdsRef = useRef<Set<string>>(new Set());
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentPaymentRef.current = currentPayment;
+  }, [currentPayment]);
+
+  useEffect(() => {
+    shownPaymentIdsRef.current = shownPaymentIds;
+  }, [shownPaymentIds]);
 
   useEffect(() => {
     if (!isAuthenticated || !userEmail) {
@@ -41,16 +52,19 @@ export function PaymentProvider({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           const data = await response.json();
           
+          // Use ref to get current value without causing re-render loop
+          const activePayment = currentPaymentRef.current;
+          
           // If we're showing a payment, check if it's still pending
-          if (currentPayment) {
+          if (activePayment) {
             const stillPending = data.payments?.some(
-              (payment: PaymentRequest) => payment.id === currentPayment.id
+              (payment: PaymentRequest) => payment.id === activePayment.id
             );
             
             // If payment is no longer pending, it was processed (confirmed/declined)
             if (!stillPending) {
               console.log('✅ Payment processed externally, dismissing modal');
-              dismissPayment();
+              setCurrentPayment(null);
               return;
             }
             // Still pending, don't look for new ones
@@ -59,7 +73,7 @@ export function PaymentProvider({ children }: { children: React.ReactNode }) {
           
           // Only look for new payments if we're not showing one
           const newPayment = data.payments?.find(
-            (payment: PaymentRequest) => !shownPaymentIds.has(payment.id)
+            (payment: PaymentRequest) => !shownPaymentIdsRef.current.has(payment.id)
           );
 
           if (newPayment) {
@@ -80,7 +94,7 @@ export function PaymentProvider({ children }: { children: React.ReactNode }) {
     // Poll every 3 seconds for new payments
     const interval = setInterval(checkForPayments, 3000);
     return () => clearInterval(interval);
-  }, [userEmail, isAuthenticated, currentPayment]);
+  }, [userEmail, isAuthenticated]);
 
   const dismissPayment = () => {
     setCurrentPayment(null);

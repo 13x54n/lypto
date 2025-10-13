@@ -24,6 +24,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { endpoints, API_BASE } from '@/constants/api';
+import DepositModal from '@/components/DepositModal';
+import WithdrawModal from '@/components/WithdrawModal';
 
 interface Transaction {
   id: string;
@@ -45,16 +47,40 @@ export default function WalletTab() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [solBalance, setSolBalance] = useState(0);
+  const [usdcBalance, setUsdcBalance] = useState(0);
+  const [solCad, setSolCad] = useState(0);
+  const [usdcCad, setUsdcCad] = useState(0);
+  const [totalCad, setTotalCad] = useState(0);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   useEffect(() => {
-    loadWalletData();
+    if (!userEmail) return;
+    
+    // Load immediately with loading state
+    loadWalletData(true);
+    
+    // Auto-refresh every 10 seconds (without showing loading spinner)
+    const interval = setInterval(() => {
+      loadWalletData(false);
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, [userEmail]);
 
-  const loadWalletData = async () => {
+  const loadWalletData = async (showLoadingState = false) => {
     try {
-      const [balanceRes, transactionsRes] = await Promise.all([
+      if (showLoadingState) {
+        setLoading(true);
+      } else {
+        console.log('[Wallet] Auto-refreshing balances...');
+      }
+      
+      const [balanceRes, transactionsRes, walletBalancesRes] = await Promise.all([
         fetch(`${endpoints.lyptoBalance}?email=${userEmail}`).catch(() => null),
         fetch(`${endpoints.userTransactions}?userEmail=${userEmail}`).catch(() => null),
+        fetch(`${endpoints.walletBalances}?email=${userEmail}`).catch(() => null),
       ]);
 
       if (balanceRes?.ok) {
@@ -68,6 +94,23 @@ export default function WalletTab() {
         const transactionsData = await transactionsRes.json();
         setTransactions(transactionsData.transactions || []);
       }
+
+      if (walletBalancesRes?.ok) {
+        const walletBalancesData = await walletBalancesRes.json();
+        const newSol = walletBalancesData.balances?.sol || 0;
+        const newUsdc = walletBalancesData.balances?.usdc || 0;
+        const cadVals = walletBalancesData.cadValues || {};
+        
+        setSolBalance(newSol);
+        setUsdcBalance(newUsdc);
+        setSolCad(cadVals.sol || 0);
+        setUsdcCad(cadVals.usdc || 0);
+        setTotalCad(cadVals.total || 0);
+        
+        if (!showLoadingState) {
+          console.log(`[Wallet] ✅ Balances updated - SOL: ${newSol.toFixed(4)} ($${cadVals.sol?.toFixed(2)} CAD), USDC: ${newUsdc.toFixed(2)} ($${cadVals.usdc?.toFixed(2)} CAD), LYPTO: ${lyptoBalance}`);
+        }
+      }
     } catch (error) {
       console.error('[Wallet] Error loading data:', error);
     } finally {
@@ -79,6 +122,18 @@ export default function WalletTab() {
   const onRefresh = () => {
     setRefreshing(true);
     loadWalletData();
+  };
+
+  const handleWithdraw = async (token: 'SOL' | 'USDC', amount: string, destination: string) => {
+    try {
+      // TODO: Implement actual withdrawal via Circle API
+      console.log('Withdrawing:', { token, amount, destination });
+      
+      // Placeholder - in production, this would call the backend
+      throw new Error('Withdrawal feature coming soon. Contact support for large withdrawals.');
+    } catch (error: any) {
+      throw error;
+    }
   };
 
   const getTransactionColor = (status: string) => {
@@ -331,14 +386,34 @@ export default function WalletTab() {
             <Text style={styles.balanceValue}>Total Earned: {totalEarned.toLocaleString()}</Text>
           </View>
           <View style={styles.balanceRight}>
-            {walletAddress && (
             <View style={styles.assetPill}>
-                <Ionicons name="wallet-outline" size={14} color={Colors.textSecondary} />
-                <Text style={styles.assetSymbol}>{walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}</Text>
+              <View style={styles.assetLeft}>
+              <Text style={styles.assetSymbol}>USDC</Text>
+                <Text style={styles.assetAmount}>{usdcBalance.toFixed(2)}</Text>
+              </View>
+              {usdcCad > 0 && (
+                <Text style={styles.assetCad}>${usdcCad.toFixed(2)} CAD</Text>
+              )}
             </View>
-            )}
+            <View style={styles.assetPill}>
+              <View style={styles.assetLeft}>
+              <Text style={styles.assetSymbol}>SOL</Text>
+                <Text style={styles.assetAmount}>{solBalance.toFixed(4)}</Text>
+              </View>
+              {solCad > 0 && (
+                <Text style={styles.assetCad}>${solCad.toFixed(2)} CAD</Text>
+              )}
+            </View>
           </View>
         </View>
+
+        {/* Total Portfolio Value in CAD */}
+        {totalCad > 0 && (
+          <View style={styles.totalValueRow}>
+            <Text style={styles.totalValueLabel}>Total Portfolio Value</Text>
+            <Text style={styles.totalValueAmount}>${totalCad.toFixed(2)} CAD</Text>
+          </View>
+        )}
 
         <View style={styles.autoRedeemRow}>
           <Text style={styles.autoRedeemText}>Auto Redeem Points</Text>
@@ -353,13 +428,13 @@ export default function WalletTab() {
           <Text style={styles.autoRedeemInfoText}>{autoRedeemEnabled ? "- Your points will be redeemed automatically." : "- Points will not be redeemed automatically."}</Text>
         </View>
         <View style={styles.actionsRow}>
-          <Button variant="secondary" size="sm" style={[styles.actionButton, styles.actionButtonDeposit]} onPress={() => { /* TODO: implement deposit */ }}>
+          <Button variant="secondary" size="sm" style={[styles.actionButton, styles.actionButtonDeposit]} onPress={() => setShowDepositModal(true)}>
             <View style={styles.actionButtonContent}>
               <Ionicons name="arrow-down-circle-outline" size={16} color={Colors.textPrimary} />
               <Text style={styles.actionButtonText}>Deposit</Text>
             </View>
           </Button>
-          <Button variant="secondary" size="sm" style={[styles.actionButton, styles.actionButtonWithdraw]} onPress={() => { /* TODO: implement withdraw */ }}>
+          <Button variant="secondary" size="sm" style={[styles.actionButton, styles.actionButtonWithdraw]} onPress={() => setShowWithdrawModal(true)}>
             <View style={styles.actionButtonContent}>
               <Ionicons name="arrow-up-circle-outline" size={16} color={Colors.textPrimary} />
               <Text style={styles.actionButtonText}>Withdraw</Text>
@@ -446,6 +521,23 @@ export default function WalletTab() {
           </Button>
         </View>
       </ScrollView>
+
+      {/* Deposit Modal */}
+      <DepositModal
+        visible={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        walletAddress={walletAddress}
+      />
+
+      {/* Withdraw Modal */}
+      <WithdrawModal
+        visible={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        walletAddress={walletAddress}
+        solBalance={solBalance}
+        usdcBalance={usdcBalance}
+        onWithdraw={handleWithdraw}
+      />
 
       {/* Pass Preview Modal */}
       <Modal
@@ -604,24 +696,34 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   assetPill: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 4,
+    backgroundColor: Colors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 100,
+  },
+  assetLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
   },
   assetSymbol: {
     fontSize: 12,
     color: Colors.textSecondary,
     fontWeight: '600',
-    marginRight: 2,
   },
   assetAmount: {
     fontSize: Typography.body,
     color: Colors.textPrimary,
     fontWeight: '600',
+  },
+  assetCad: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontWeight: '500',
   },
   filtersRow: {
     flexDirection: 'row',
@@ -700,6 +802,44 @@ const styles = StyleSheet.create({
   exportText: {
     color: "#000",
     fontWeight: '600',
+  },
+  totalValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  totalValueLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  totalValueAmount: {
+    fontSize: 18,
+    color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  walletAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
+  },
+  walletAddressText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontFamily: 'monospace',
   },
   autoRedeemRow: {
     flexDirection: 'row',

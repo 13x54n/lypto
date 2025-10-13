@@ -612,3 +612,132 @@ merchantRouter.get('/analytics/stats', async (c) => {
 		return c.json({ error: 'Failed to fetch stats' }, 500);
 	}
 });
+
+// Get wallet balances (SOL, USDC, etc.) from Circle
+merchantRouter.get('/wallet-balances', async (c) => {
+	try {
+		const email = c.req.query('email');
+
+		if (!email) {
+			return c.json({ error: 'Email required' }, 400);
+		}
+
+		const user = await User.findOne({ email });
+
+		if (!user) {
+			return c.json({ error: 'User not found' }, 404);
+		}
+
+		if (!user.circleWalletId) {
+			return c.json({
+				balances: {
+					sol: 0,
+					usdc: 0,
+				},
+				walletAddress: user.circleWalletAddress || null,
+			});
+		}
+
+		try {
+			// Import Circle wallet service
+			const { getWalletBalance, getWallet } = await import('../services/circleWalletService');
+			
+			// Get token balances (for USDC, SPL tokens, etc.)
+			const balanceData = await getWalletBalance(user.circleWalletId);
+			
+			// Get wallet details (for native SOL balance)
+			const walletDetails = await getWallet(user.circleWalletId);
+			
+			console.log('[Circle API] Wallet details:', JSON.stringify(walletDetails, null, 2));
+			console.log('[Circle API] Balance data:', JSON.stringify(balanceData, null, 2));
+			
+			// Parse token balances
+			const tokenBalances = balanceData?.tokenBalances || [];
+			
+			let solBalance = 0;
+			let usdcBalance = 0;
+
+			// Try multiple ways to get SOL balance
+			// Method 1: Check tokenBalances array
+			for (const token of tokenBalances) {
+				const symbol = token.token?.symbol || token.symbol;
+				const amount = token.amount || '0';
+				
+				if (symbol === 'SOL') {
+					solBalance = parseFloat(amount);
+					console.log('[SOL] Found in tokenBalances:', solBalance);
+				} else if (symbol === 'USDC') {
+					usdcBalance = parseFloat(amount);
+					console.log('[USDC] Found in tokenBalances:', usdcBalance);
+				}
+			}
+			
+			// Method 2: Check wallet's native balance
+			if (solBalance === 0 && walletDetails) {
+				const nativeBalance = (walletDetails as any).nativeBalance || 
+				                     (walletDetails as any).balance;
+				if (nativeBalance) {
+					solBalance = parseFloat(nativeBalance);
+					console.log('[SOL] Found in nativeBalance:', solBalance);
+				}
+			}
+			
+			// Method 3: Fetch directly from Solana RPC as fallback
+			if (solBalance === 0 && user.circleWalletAddress) {
+				try {
+					const { Connection, PublicKey } = await import('@solana/web3.js');
+					const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+					const connection = new Connection(rpcUrl, 'confirmed');
+					const publicKey = new PublicKey(user.circleWalletAddress);
+					const balance = await connection.getBalance(publicKey);
+					solBalance = balance / 1e9; // Convert lamports to SOL
+					console.log('[SOL] Fetched from Solana RPC:', solBalance);
+				} catch (error) {
+					console.error('[SOL] Error fetching from RPC:', error);
+				}
+			}
+
+			// Get CAD conversions
+			const { convertToCad } = await import('../services/priceService');
+			const cadValues = await convertToCad({
+				sol: solBalance,
+				usdc: usdcBalance,
+			});
+
+			console.log(`[Wallet Balances] ${user.email}:`);
+			console.log(`  SOL: ${solBalance} (~$${cadValues.solCad.toFixed(2)} CAD)`);
+			console.log(`  USDC: ${usdcBalance} (~$${cadValues.usdcCad.toFixed(2)} CAD)`);
+			console.log(`  Total: ~$${cadValues.totalCad.toFixed(2)} CAD`);
+
+			return c.json({
+				balances: {
+					sol: solBalance,
+					usdc: usdcBalance,
+				},
+				cadValues: {
+					sol: cadValues.solCad,
+					usdc: cadValues.usdcCad,
+					total: cadValues.totalCad,
+				},
+				walletAddress: user.circleWalletAddress,
+				tokenBalances: tokenBalances.map((t: any) => ({
+					symbol: t.token?.symbol || t.symbol,
+					amount: t.amount,
+					decimals: t.token?.decimals || t.decimals,
+				})),
+			});
+		} catch (error) {
+			console.error('Error fetching wallet balances from Circle:', error);
+			return c.json({
+				balances: {
+					sol: 0,
+					usdc: 0,
+				},
+				walletAddress: user.circleWalletAddress || null,
+			});
+		}
+	} catch (error) {
+		console.error('Error fetching wallet balances:', error);
+		return c.json({ error: 'Failed to fetch wallet balances' }, 500);
+	}
+});
