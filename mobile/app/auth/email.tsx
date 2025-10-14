@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,42 @@ import {
 import { router } from 'expo-router';
 import { endpoints } from '../../constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 export default function EmailAuthPage() {
+  const { authenticateWithBiometrics } = useAuth();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+  useEffect(() => {
+    checkBiometricAvailability();
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      setBiometricAvailable(hasHardware && isEnrolled);
+    } catch (error) {
+      console.error('Error checking biometric availability:', error);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      const success = await authenticateWithBiometrics();
+      if (success) {
+        // Biometric auth successful - user should be automatically logged in
+        router.replace('/dashboard');
+      } else {
+        Alert.alert('Authentication Failed', 'Biometric authentication failed. Please try again or use email login.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Biometric authentication error. Please use email login.');
+    }
+  };
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -97,6 +129,28 @@ export default function EmailAuthPage() {
               onSubmitEditing={handleSendOTP}
             />
           </View>
+
+          {/* Biometric Login Button */}
+          {biometricAvailable && (
+            <TouchableOpacity
+              style={[styles.button, styles.biometricButton]}
+              onPress={handleBiometricLogin}
+              disabled={isLoading}
+            >
+              <Text style={styles.biometricButtonText}>
+                {Platform.OS === 'ios' ? '🔐 Use Face ID' : '🔐 Use Fingerprint'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Divider */}
+          {biometricAvailable && (
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          )}
 
           {/* Send OTP Button */}
           <TouchableOpacity
@@ -207,5 +261,29 @@ const styles = StyleSheet.create({
     color: '#55efc4',
     textDecorationLine: 'underline',
     lineHeight: 18,
+  },
+  biometricButton: {
+    backgroundColor: '#55efc4',
+    marginBottom: 16,
+  },
+  biometricButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  dividerText: {
+    fontSize: 14,
+    color: '#666',
+    marginHorizontal: 16,
   },
 });

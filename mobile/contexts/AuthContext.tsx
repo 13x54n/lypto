@@ -37,8 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       if (storedEmail && storedToken) {
-        // If biometric auth is enabled, require it
-        if (biometricEnabled === 'true') {
+        // Check if biometric authentication is available and enabled
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        
+        if (hasHardware && isEnrolled && biometricEnabled === 'true') {
+          // Try biometric authentication first
           const biometricSuccess = await authenticateWithBiometrics();
           if (biometricSuccess) {
             setUserEmail(storedEmail);
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await logout();
           }
         } else {
-          // No biometric required - auto-login
+          // No biometric required or not available - auto-login
           setUserEmail(storedEmail);
           setIsAuthenticated(true);
         }

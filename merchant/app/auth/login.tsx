@@ -1,12 +1,44 @@
-import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { endpoints } from '../../constants/api';
+import { useAuth } from '@/contexts/AuthContext';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 export default function LoginScreen() {
+  const { authenticateWithBiometrics } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+  useEffect(() => {
+    checkBiometricAvailability();
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      setBiometricAvailable(hasHardware && isEnrolled);
+    } catch (error) {
+      console.error('Error checking biometric availability:', error);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      const success = await authenticateWithBiometrics();
+      if (success) {
+        // Biometric auth successful - user should be automatically logged in
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Authentication Failed', 'Biometric authentication failed. Please try again or use email login.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Biometric authentication error. Please use email login.');
+    }
+  };
 
   const handleSendOTP = async () => {
     if (!email || !email.includes('@')) {
@@ -59,6 +91,28 @@ export default function LoginScreen() {
           autoCorrect={false}
           editable={!loading}
         />
+
+        {/* Biometric Login Button */}
+        {biometricAvailable && (
+          <TouchableOpacity
+            style={[styles.button, styles.biometricButton]}
+            onPress={handleBiometricLogin}
+            disabled={loading}
+          >
+            <Text style={styles.biometricButtonText}>
+              {Platform.OS === 'ios' ? '🔐 Use Face ID' : '🔐 Use Fingerprint'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Divider */}
+        {biometricAvailable && (
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
@@ -152,6 +206,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
+  },
+  biometricButton: {
+    backgroundColor: '#55efc4',
+  },
+  biometricButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  dividerText: {
+    fontSize: 14,
+    color: '#666',
+    marginHorizontal: 16,
   },
 });
 
