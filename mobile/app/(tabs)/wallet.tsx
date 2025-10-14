@@ -23,6 +23,7 @@ import { ListItem } from '@/components/ui/ListItem';
 import { useAuth } from '@/contexts/AuthContext';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as Print from 'expo-print';
 import { endpoints, API_BASE } from '@/constants/api';
 import DepositModal from '@/components/DepositModal';
 import WithdrawModal from '@/components/WithdrawModal';
@@ -126,13 +127,274 @@ export default function WalletTab() {
 
   const handleWithdraw = async (token: 'SOL' | 'USDC', amount: string, destination: string) => {
     try {
-      // TODO: Implement actual withdrawal via Circle API
-      console.log('Withdrawing:', { token, amount, destination });
+      console.log('Initiating withdrawal:', { token, amount, destination });
       
-      // Placeholder - in production, this would call the backend
-      throw new Error('Withdrawal feature coming soon. Contact support for large withdrawals.');
+      const response = await fetch(endpoints.withdraw, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          token,
+          amount,
+          destinationAddress: destination,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Failed to process withdrawal');
+      }
+
+      console.log('✅ Withdrawal successful:', data);
+      
+      // Refresh balances after successful withdrawal
+      setTimeout(() => {
+        loadWalletData(false);
+      }, 2000);
+
+      return data;
     } catch (error: any) {
+      console.error('Withdrawal error:', error);
       throw error;
+    }
+  };
+
+  const handleExportStatement = async () => {
+    try {
+      Alert.alert('Generating Statement', 'Creating your transaction history PDF...');
+
+      const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      // Generate HTML for PDF
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Lypto Transaction Statement</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              padding: 40px;
+              background: white;
+              color: #000;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 40px;
+              border-bottom: 3px solid #55efc4;
+              padding-bottom: 20px;
+            }
+            .header h1 {
+              color: #55efc4;
+              margin: 0;
+              font-size: 32px;
+            }
+            .header p {
+              color: #666;
+              margin: 10px 0 0 0;
+            }
+            .account-info {
+              background: #f5f5f5;
+              padding: 20px;
+              border-radius: 8px;
+              margin-bottom: 30px;
+            }
+            .account-info h3 {
+              margin: 0 0 15px 0;
+              color: #333;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            }
+            .info-label {
+              color: #666;
+              font-weight: 500;
+            }
+            .info-value {
+              color: #000;
+              font-weight: 600;
+            }
+            .transactions {
+              margin-top: 30px;
+            }
+            .transactions h3 {
+              color: #333;
+              margin-bottom: 20px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 30px;
+            }
+            th {
+              background: #55efc4;
+              color: #000;
+              padding: 12px;
+              text-align: left;
+              font-weight: 600;
+              border: 1px solid #45d9b4;
+            }
+            td {
+              padding: 12px;
+              border: 1px solid #ddd;
+              color: #333;
+            }
+            tr:nth-child(even) {
+              background: #f9f9f9;
+            }
+            .amount-positive {
+              color: #27ae60;
+              font-weight: 600;
+            }
+            .amount-negative {
+              color: #e74c3c;
+              font-weight: 600;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 2px solid #ddd;
+              text-align: center;
+              color: #999;
+              font-size: 12px;
+            }
+            .summary {
+              background: #55efc4;
+              padding: 20px;
+              border-radius: 8px;
+              margin-bottom: 30px;
+            }
+            .summary-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            }
+            .summary-label {
+              color: #000;
+              font-weight: 500;
+            }
+            .summary-value {
+              color: #000;
+              font-weight: 700;
+              font-size: 18px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>LYPTO</h1>
+            <p>Transaction Statement</p>
+            <p>${currentDate}</p>
+          </div>
+
+          <div class="account-info">
+            <h3>Account Information</h3>
+            <div class="info-row">
+              <span class="info-label">Email:</span>
+              <span class="info-value">${userEmail}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Wallet Address:</span>
+              <span class="info-value">${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Statement Date:</span>
+              <span class="info-value">${currentDate}</span>
+            </div>
+          </div>
+
+          <div class="summary">
+            <div class="summary-row">
+              <span class="summary-label">LYPTO Balance:</span>
+              <span class="summary-value">${lyptoBalance.toLocaleString()} LYPTO</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Total Earned:</span>
+              <span class="summary-value">${totalEarned.toLocaleString()} LYPTO</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">SOL Balance:</span>
+              <span class="summary-value">${solBalance.toFixed(4)} SOL ($${solCad.toFixed(2)} CAD)</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">USDC Balance:</span>
+              <span class="summary-value">${usdcBalance.toFixed(2)} USDC ($${usdcCad.toFixed(2)} CAD)</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Total Portfolio:</span>
+              <span class="summary-value">$${totalCad.toFixed(2)} CAD</span>
+            </div>
+          </div>
+
+          <div class="transactions">
+            <h3>Transaction History (Last ${transactions.length} Transactions)</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Merchant</th>
+                  <th>Amount</th>
+                  <th>LYPTO Reward</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${transactions.map(tx => `
+                  <tr>
+                    <td>${formatDate(tx.createdAt)}</td>
+                    <td>${tx.merchantEmail}</td>
+                    <td>$${tx.amount.toFixed(2)}</td>
+                    <td class="amount-positive">+${tx.lyptoReward} LYPTO</td>
+                    <td>${tx.status}</td>
+                  </tr>
+                `).join('')}
+                ${transactions.length === 0 ? `
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: #999;">No transactions yet</td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer">
+            <p>This is an official statement from Lypto</p>
+            <p>Generated on ${currentDate}</p>
+            <p>For support, contact: support@lypto.app</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Generate PDF
+      const { uri } = await Print.printToFileAsync({ html });
+      console.log('PDF generated:', uri);
+
+      // Share the PDF
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Export Transaction Statement',
+          UTI: 'com.adobe.pdf',
+        });
+        Alert.alert('Success', 'Transaction statement exported successfully!');
+      } else {
+        Alert.alert('Error', 'Sharing is not available on this device');
+      }
+    } catch (error) {
+      console.error('Error exporting statement:', error);
+      Alert.alert('Error', 'Failed to export statement. Please try again.');
     }
   };
 
@@ -357,8 +619,8 @@ export default function WalletTab() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.container}>
+  return (
+    <View style={styles.container}>
         <DashboardHeader totalPoints={lyptoBalance} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -451,7 +713,7 @@ export default function WalletTab() {
             >
               <View style={styles.addCardIconContainer}>
                 <Ionicons name="add-circle" size={24} color={Colors.primary} />
-              </View>
+          </View>
               <View style={styles.addCardContent}>
                 <Text style={styles.addCardTitle}>Add Card to {Platform.OS === 'ios' ? 'Apple' : 'Google'} Wallet 💳</Text>
                 <Text style={styles.addCardSubtitle}>Access your points on the go</Text>
@@ -473,7 +735,7 @@ export default function WalletTab() {
             <Button variant="secondary" size="sm">Earned</Button>
             <Button variant="secondary" size="sm">Spent</Button>
           </View>
-          <Button variant="ghost" size="sm" onPress={() => { /* TODO: implement export */ }}>
+          <Button variant="ghost" size="sm" onPress={handleExportStatement}>
             <View style={styles.exportContent}>
               <Ionicons name="download-outline" size={16} color="#000" />
               <Text style={styles.exportText}>Export</Text>

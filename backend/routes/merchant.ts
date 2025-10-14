@@ -157,7 +157,55 @@ merchantRouter.post('/confirm-payment', async (c) => {
 		if (status === 'confirmed') {
 			const customer = await User.findOne({ email: payment.userEmail });
 			
-			if (customer?.circleWalletAddress && ENABLE_LYPTO_MINTING && mintLyptoReward) {
+			console.log(`[LYPTO Check] Customer: ${customer?.email}`);
+			console.log(`[LYPTO Check] Wallet Address: ${customer?.circleWalletAddress}`);
+			console.log(`[LYPTO Check] ENABLE_LYPTO_MINTING: ${ENABLE_LYPTO_MINTING}`);
+			console.log(`[LYPTO Check] mintLyptoReward function: ${mintLyptoReward ? 'loaded' : 'NOT LOADED'}`);
+			
+			if (!customer) {
+				console.log('❌ Customer not found');
+			} else if (!customer.circleWalletAddress) {
+				console.log('❌ Customer wallet address not set');
+			} else if (!ENABLE_LYPTO_MINTING) {
+				console.log('ℹ️  LYPTO minting disabled in .env');
+			} else if (!mintLyptoReward) {
+				console.log('❌ LYPTO service not loaded - trying to load now...');
+				
+				// Try to load service synchronously
+				try {
+					const lyptoService = await import('../services/lyptoTokenService');
+					const txSignature = await lyptoService.mintLyptoReward(
+						customer.circleWalletAddress,
+						payment.amount,
+						payment.transactionId
+					);
+					
+					// Update payment with blockchain transaction
+					payment.lyptoTxSignature = txSignature;
+					payment.lyptoMinted = true;
+					await payment.save();
+					
+					// Update customer's LYPTO balance
+					const newBalance = await lyptoService.getLyptoBalance(customer.circleWalletAddress);
+					customer.lyptoBalance = newBalance;
+					customer.totalLyptoEarned = (customer.totalLyptoEarned || 0) + payment.lyptoReward;
+					customer.lastLyptoSync = new Date();
+					await customer.save();
+					
+					console.log(`✅ LYPTO minted! TX: ${txSignature}`);
+					console.log(`💰 Customer balance: ${newBalance} LYPTO`);
+					
+					realtimeService.notifyLyptoMinted(
+						customer.email,
+						payment.lyptoReward,
+						newBalance,
+						txSignature
+					);
+				} catch (error) {
+					console.error('❌ Failed to mint LYPTO (fallback):', error);
+				}
+			} else {
+				// Service is loaded and ready
 				try {
 					console.log(`🪙 Minting ${payment.lyptoReward} LYPTO to ${customer.circleWalletAddress}...`);
 					
@@ -194,8 +242,6 @@ merchantRouter.post('/confirm-payment', async (c) => {
 					console.error('❌ Failed to mint LYPTO:', error);
 					// Don't fail payment if LYPTO minting fails
 				}
-			} else {
-				console.log(`ℹ️  LYPTO minting disabled or wallet not ready`);
 			}
 			
 			// Update customer points (legacy system)
@@ -610,6 +656,158 @@ merchantRouter.get('/analytics/stats', async (c) => {
 	} catch (error) {
 		console.error('Error fetching user stats:', error);
 		return c.json({ error: 'Failed to fetch stats' }, 500);
+	}
+});
+
+// Pay merchant with crypto (SOL or USDC)
+merchantRouter.post('/pay-with-crypto', async (c) => {
+	try {
+		const { userEmail, merchantEmail, token, amount, paymentId } = await c.req.json();
+
+		if (!userEmail || !merchantEmail || !token || !amount) {
+			return c.json({ error: 'Missing required fields' }, 400);
+		}
+
+		const [user, merchant] = await Promise.all([
+			User.findOne({ email: userEmail }),
+			User.findOne({ email: merchantEmail }),
+		]);
+
+		if (!user || !merchant) {
+			return c.json({ error: 'User or merchant not found' }, 404);
+		}
+
+		if (!user.circleWalletId || !merchant.circleWalletAddress) {
+			return c.json({ error: 'Wallet not initialized' }, 400);
+		}
+
+		// Validate amount
+		const amountNum = parseFloat(amount);
+		if (isNaN(amountNum) || amountNum <= 0) {
+			return c.json({ error: 'Invalid amount' }, 400);
+		}
+
+		try {
+			const { createTransaction } = await import('../services/circleWalletService');
+			
+			const USDC_TOKEN_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+			const blockchain = (process.env.SOLANA_NETWORK === 'mainnet' ? 'SOL-MAINNET' : 'SOL-DEVNET') as 'SOL-DEVNET' | 'SOL-MAINNET';
+			
+			// Create transaction from user to merchant
+			const result = await createTransaction({
+				walletId: user.circleWalletId,
+				blockchain,
+				tokenAddress: token === 'USDC' ? USDC_TOKEN_ADDRESS : '',
+				amount: amount,
+				destinationAddress: merchant.circleWalletAddress,
+			});
+
+			console.log(`💰 Crypto payment from ${userEmail} to ${merchantEmail}:`);
+			console.log(`   Token: ${token}`);
+			console.log(`   Amount: ${amount}`);
+			console.log(`   TX ID: ${result.transactionId}`);
+
+			// Update payment if paymentId provided
+			if (paymentId) {
+				const payment = await Payment.findById(paymentId);
+				if (payment) {
+					payment.status = 'confirmed';
+					payment.confirmedAt = new Date();
+					payment.lyptoTxSignature = result.transactionId; // Store Circle TX ID
+					await payment.save();
+					
+					// Send real-time update
+					realtimeService.notifyPaymentUpdate(payment);
+				}
+			}
+
+			return c.json({
+				success: true,
+				transactionId: result.transactionId,
+				state: result.state,
+				message: 'Payment sent successfully',
+			});
+		} catch (error: any) {
+			console.error('Error creating crypto payment:', error);
+			return c.json({
+				error: 'Failed to send payment',
+				message: error.message || 'Unknown error',
+			}, 500);
+		}
+	} catch (error) {
+		console.error('Error processing crypto payment:', error);
+		return c.json({ error: 'Failed to process payment' }, 500);
+	}
+});
+
+// Withdraw tokens (SOL, USDC) from wallet
+merchantRouter.post('/withdraw', async (c) => {
+	try {
+		const { email, token, amount, destinationAddress } = await c.req.json();
+
+		if (!email || !token || !amount || !destinationAddress) {
+			return c.json({ error: 'Missing required fields' }, 400);
+		}
+
+		const user = await User.findOne({ email });
+
+		if (!user) {
+			return c.json({ error: 'User not found' }, 404);
+		}
+
+		if (!user.circleWalletId) {
+			return c.json({ error: 'Wallet not initialized' }, 400);
+		}
+
+		// Validate amount
+		const amountNum = parseFloat(amount);
+		if (isNaN(amountNum) || amountNum <= 0) {
+			return c.json({ error: 'Invalid amount' }, 400);
+		}
+
+		// Validate destination address (basic Solana address check)
+		if (destinationAddress.length < 32 || destinationAddress.length > 44) {
+			return c.json({ error: 'Invalid Solana address' }, 400);
+		}
+
+		try {
+			const { createTransaction } = await import('../services/circleWalletService');
+			
+			// USDC token address on Solana
+			const USDC_TOKEN_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+			
+			const blockchain = (process.env.SOLANA_NETWORK === 'mainnet' ? 'SOL-MAINNET' : 'SOL-DEVNET') as 'SOL-DEVNET' | 'SOL-MAINNET';
+			
+			const result = await createTransaction({
+				walletId: user.circleWalletId,
+				blockchain,
+				tokenAddress: token === 'USDC' ? USDC_TOKEN_ADDRESS : '', // Empty for native SOL
+				amount: amount,
+				destinationAddress: destinationAddress,
+			});
+
+			console.log(`💸 Withdrawal initiated for ${email}:`);
+			console.log(`   Token: ${token}`);
+			console.log(`   Amount: ${amount}`);
+			console.log(`   To: ${destinationAddress}`);
+			console.log(`   TX ID: ${result.transactionId}`);
+
+			return c.json({
+				success: true,
+				transactionId: result.transactionId,
+				state: result.state,
+				message: 'Withdrawal initiated successfully',
+			});
+		} catch (error: any) {
+			console.error('Error creating withdrawal transaction:', error);
+			return c.json({
+				error: 'Failed to create withdrawal',
+				message: error.message || 'Unknown error',
+			}, 500);
+		}
+	} catch (error) {
+		console.error('Error processing withdrawal:', error);
+		return c.json({ error: 'Failed to process withdrawal' }, 500);
 	}
 });
 

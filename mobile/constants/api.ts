@@ -17,4 +17,5 @@ export const endpoints = {
     analyticsDaily: `${API_BASE}/api/merchant/analytics/daily`,
     analyticsStats: `${API_BASE}/api/merchant/analytics/stats`,
     walletBalances: `${API_BASE}/api/merchant/wallet-balances`,
+    withdraw: `${API_BASE}/api/merchant/withdraw`,
 };

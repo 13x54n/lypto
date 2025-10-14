@@ -150,32 +150,47 @@ export async function getWalletBalance(walletId: string): Promise<any> {
  */
 export async function createTransaction(params: {
   walletId: string;
-  tokenId: string;
+  blockchain: 'SOL-DEVNET' | 'SOL-MAINNET';
+  tokenAddress: string; // Empty string for native SOL, token address for SPL tokens
+  amount: string;
   destinationAddress: string;
-  amounts: string[];
 }): Promise<{ transactionId: string; state: string }> {
   try {
-    const response = await circleClient.createTransaction({
+    console.log('🔄 Creating transaction:', {
       walletId: params.walletId,
-      tokenId: params.tokenId,
+      blockchain: params.blockchain,
+      tokenAddress: params.tokenAddress || '(native SOL)',
+      amount: params.amount,
+      destination: params.destinationAddress,
+    });
+
+    const response = await circleClient.createTransaction({
+      blockchain: params.blockchain as any,
+      tokenAddress: params.tokenAddress,
+      amount: [params.amount],
       destinationAddress: params.destinationAddress,
-      amount: params.amounts, // Note: SDK expects 'amount', not 'amounts'
+      walletId: params.walletId,
       fee: {
         type: 'level',
         config: {
           feeLevel: 'MEDIUM',
         },
-      },
+      } as any,
     } as any);
 
     const transaction = response.data as any;
+    
+    console.log('✅ Transaction created:', {
+      id: transaction.id,
+      state: transaction.state,
+    });
     
     return {
       transactionId: transaction.id,
       state: transaction.state,
     };
   } catch (error) {
-    console.error('Error creating transaction:', error);
+    console.error('❌ Error creating transaction:', error);
     throw error;
   }
 }

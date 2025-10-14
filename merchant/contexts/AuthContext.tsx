@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { Alert, Platform } from 'react-native';
 
 interface AuthContextType {
   merchantEmail: string | null;
@@ -7,9 +9,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, token: string) => Promise<void>;
   logout: () => Promise<void>;
+  authenticateWithBiometrics: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const MERCHANT_EMAIL_KEY = 'merchant_email';
+const MERCHANT_TOKEN_KEY = 'merchant_token';
+const BIOMETRIC_ENABLED_KEY = 'merchant_biometric_enabled';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [merchantEmail, setMerchantEmail] = useState<string | null>(null);
@@ -22,23 +29,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadAuth = async () => {
     try {
-      const email = await AsyncStorage.getItem('merchant_email');
-      const token = await AsyncStorage.getItem('merchant_token');
+      const [email, token, biometricEnabled] = await Promise.all([
+        SecureStore.getItemAsync(MERCHANT_EMAIL_KEY),
+        SecureStore.getItemAsync(MERCHANT_TOKEN_KEY),
+        SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY),
+      ]);
       
       if (email && token) {
-        setMerchantEmail(email);
-        setMerchantToken(token);
-        setIsAuthenticated(true);
+        // If biometric auth is enabled, require it
+        if (biometricEnabled === 'true') {
+          const biometricSuccess = await authenticateWithBiometrics();
+          if (biometricSuccess) {
+            setMerchantEmail(email);
+            setMerchantToken(token);
+            setIsAuthenticated(true);
+          } else {
+            // Biometric failed - user needs to login again
+            await logout();
+          }
+        } else {
+          // No biometric required - auto-login
+          setMerchantEmail(email);
+          setMerchantToken(token);
+          setIsAuthenticated(true);
+        }
       }
     } catch (error) {
       console.error('Error loading auth:', error);
     }
   };
 
+  const authenticateWithBiometrics = async (): Promise<boolean> => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        console.log('No biometric hardware available');
+        return true;
+      }
+
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!isEnrolled) {
+        console.log('No biometrics enrolled');
+        return true;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate to access Merchant Dashboard',
+        fallbackLabel: 'Use passcode',
+        disableDeviceFallback: false,
+      });
+
+      return result.success;
+    } catch (error) {
+      console.error('Biometric authentication error:', error);
+      return false;
+    }
+  };
+
   const login = async (email: string, token: string) => {
     try {
-      await AsyncStorage.setItem('merchant_email', email);
-      await AsyncStorage.setItem('merchant_token', token);
+      await Promise.all([
+        SecureStore.setItemAsync(MERCHANT_EMAIL_KEY, email),
+        SecureStore.setItemAsync(MERCHANT_TOKEN_KEY, token),
+      ]);
+      
+      // Check if biometric authentication is available
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      
+      if (hasHardware && isEnrolled) {
+        // Ask user if they want to enable biometric auth
+        Alert.alert(
+          Platform.OS === 'ios' ? 'Enable Face ID?' : 'Enable Biometric Authentication?',
+          'Use biometrics to quickly and securely access the merchant dashboard',
+          [
+            {
+              text: 'Not Now',
+              onPress: async () => {
+                await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'false');
+              },
+              style: 'cancel',
+            },
+            {
+              text: 'Enable',
+              onPress: async () => {
+                await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+              },
+            },
+          ]
+        );
+      }
+      
       setMerchantEmail(email);
       setMerchantToken(token);
       setIsAuthenticated(true);
@@ -50,8 +131,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('merchant_email');
-      await AsyncStorage.removeItem('merchant_token');
+      await Promise.all([
+        SecureStore.deleteItemAsync(MERCHANT_EMAIL_KEY),
+        SecureStore.deleteItemAsync(MERCHANT_TOKEN_KEY),
+        SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY),
+      ]);
       setMerchantEmail(null);
       setMerchantToken(null);
       setIsAuthenticated(false);
@@ -61,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ merchantEmail, merchantToken, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ merchantEmail, merchantToken, isAuthenticated, login, logout, authenticateWithBiometrics }}>
       {children}
     </AuthContext.Provider>
   );

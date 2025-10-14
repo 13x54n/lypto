@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { Alert, Platform } from 'react-native';
 
 interface AuthContextType {
   userEmail: string | null;
@@ -7,12 +9,14 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, token: string) => Promise<void>;
   logout: () => Promise<void>;
+  authenticateWithBiometrics: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = '@zypto_auth';
-const EMAIL_STORAGE_KEY = '@zypto_email';
+const AUTH_STORAGE_KEY = 'zypto_auth_token';
+const EMAIL_STORAGE_KEY = 'zypto_user_email';
+const BIOMETRIC_ENABLED_KEY = 'zypto_biometric_enabled';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -26,14 +30,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadAuthData = async () => {
     try {
-      const [storedEmail, storedToken] = await Promise.all([
-        AsyncStorage.getItem(EMAIL_STORAGE_KEY),
-        AsyncStorage.getItem(AUTH_STORAGE_KEY),
+      const [storedEmail, storedToken, biometricEnabled] = await Promise.all([
+        SecureStore.getItemAsync(EMAIL_STORAGE_KEY),
+        SecureStore.getItemAsync(AUTH_STORAGE_KEY),
+        SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY),
       ]);
 
       if (storedEmail && storedToken) {
-        setUserEmail(storedEmail);
-        setIsAuthenticated(true);
+        // If biometric auth is enabled, require it
+        if (biometricEnabled === 'true') {
+          const biometricSuccess = await authenticateWithBiometrics();
+          if (biometricSuccess) {
+            setUserEmail(storedEmail);
+            setIsAuthenticated(true);
+          } else {
+            // Biometric failed - user needs to login again
+            await logout();
+          }
+        } else {
+          // No biometric required - auto-login
+          setUserEmail(storedEmail);
+          setIsAuthenticated(true);
+        }
       }
     } catch (error) {
       console.error('Error loading auth data:', error);
@@ -44,10 +62,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, token: string) => {
     try {
+      // Save to secure store
       await Promise.all([
-        AsyncStorage.setItem(EMAIL_STORAGE_KEY, email),
-        AsyncStorage.setItem(AUTH_STORAGE_KEY, token),
+        SecureStore.setItemAsync(EMAIL_STORAGE_KEY, email),
+        SecureStore.setItemAsync(AUTH_STORAGE_KEY, token),
       ]);
+      
+      // Check if biometric authentication is available
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      
+      if (hasHardware && isEnrolled) {
+        // Ask user if they want to enable biometric auth
+        Alert.alert(
+          Platform.OS === 'ios' ? 'Enable Face ID?' : 'Enable Biometric Authentication?',
+          'Use biometrics to quickly and securely access your wallet',
+          [
+            {
+              text: 'Not Now',
+              onPress: async () => {
+                await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'false');
+              },
+              style: 'cancel',
+            },
+            {
+              text: 'Enable',
+              onPress: async () => {
+                await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+              },
+            },
+          ]
+        );
+      }
+      
       setUserEmail(email);
       setIsAuthenticated(true);
     } catch (error) {
@@ -59,8 +106,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await Promise.all([
-        AsyncStorage.removeItem(EMAIL_STORAGE_KEY),
-        AsyncStorage.removeItem(AUTH_STORAGE_KEY),
+        SecureStore.deleteItemAsync(EMAIL_STORAGE_KEY),
+        SecureStore.deleteItemAsync(AUTH_STORAGE_KEY),
+        SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY),
       ]);
       setUserEmail(null);
       setIsAuthenticated(false);
@@ -70,12 +118,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const authenticateWithBiometrics = async (): Promise<boolean> => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        console.log('No biometric hardware available');
+        return true; // Skip biometric if not available
+      }
+
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!isEnrolled) {
+        console.log('No biometrics enrolled');
+        return true; // Skip if user hasn't set up biometrics
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate to access your wallet',
+        fallbackLabel: 'Use passcode',
+        disableDeviceFallback: false,
+      });
+
+      return result.success;
+    } catch (error) {
+      console.error('Biometric authentication error:', error);
+      return false;
+    }
+  };
+
   const value = {
     userEmail,
     isAuthenticated,
     loading,
     login,
     logout,
+    authenticateWithBiometrics,
   };
 
   return (
