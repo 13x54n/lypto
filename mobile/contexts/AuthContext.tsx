@@ -124,24 +124,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const authenticateWithBiometrics = async (): Promise<boolean> => {
     try {
+      console.log('[Auth] Checking biometric availability...');
+
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      console.log(`[Auth] Has hardware: ${hasHardware}`);
+
       if (!hasHardware) {
         console.log('No biometric hardware available');
-        return true; // Skip biometric if not available
+        return false;
       }
 
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      console.log(`[Auth] Is enrolled: ${isEnrolled}`);
+
       if (!isEnrolled) {
         console.log('No biometrics enrolled');
-        return true; // Skip if user hasn't set up biometrics
+        return false;
       }
 
+      console.log('[Auth] Attempting biometric authentication...');
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Authenticate to access your wallet',
         fallbackLabel: 'Use passcode',
         disableDeviceFallback: false,
       });
 
+      console.log(`[Auth] Biometric result: ${result.success}`);
       return result.success;
     } catch (error) {
       console.error('Biometric authentication error:', error);

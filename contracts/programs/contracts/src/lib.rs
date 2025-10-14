@@ -4,6 +4,8 @@ use anchor_spl::associated_token::AssociatedToken;
 
 declare_id!("WvogQBTW3fvNABvsFk4nB6VvNLLNpEMP7rTe94zdwZH");
 
+// ========== CONSTANTS ==========
+
 // Reward rate: 2% of transaction amount
 const REWARD_RATE_BPS: u64 = 200; // 200 basis points = 2%
 const BPS_DENOMINATOR: u64 = 10000;
@@ -103,10 +105,11 @@ pub mod contracts {
     ) -> Result<()> {
         let program_state = &mut ctx.accounts.program_state;
         program_state.authority = new_authority;
-        
+
         msg!("Authority updated to: {}", new_authority);
         Ok(())
     }
+
 }
 
 // ========== ACCOUNTS ==========
@@ -206,9 +209,12 @@ pub struct UpdateAuthority<'info> {
         has_one = authority
     )]
     pub program_state: Account<'info, ProgramState>,
-    
+
     pub authority: Signer<'info>,
 }
+
+// Swap account structures - simplified for now
+// These will be properly implemented in the next iteration
 
 // ========== STATE ==========
 

@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { endpoints } from '../../constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 
 export default function LoginScreen() {
-  const { authenticateWithBiometrics } = useAuth();
+  const { authenticateWithBiometrics, login } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -28,12 +29,23 @@ export default function LoginScreen() {
 
   const handleBiometricLogin = async () => {
     try {
-      const success = await authenticateWithBiometrics();
-      if (success) {
-        // Biometric auth successful - user should be automatically logged in
-        router.replace('/(tabs)');
+      // Check if user has stored credentials first
+      const storedEmail = await SecureStore.getItemAsync('merchant_email');
+      const storedToken = await SecureStore.getItemAsync('merchant_token');
+
+      if (storedEmail && storedToken) {
+        // User has stored credentials, try biometric authentication
+        const success = await authenticateWithBiometrics();
+        if (success) {
+          // Biometric auth successful - log them in and navigate to dashboard
+          await login(storedEmail, storedToken);
+          router.replace('/(tabs)');
+        } else {
+          Alert.alert('Authentication Failed', 'Biometric authentication failed. Please try again or use email login.');
+        }
       } else {
-        Alert.alert('Authentication Failed', 'Biometric authentication failed. Please try again or use email login.');
+        // No stored credentials - biometric login not available
+        Alert.alert('Not Available', 'Please log in with email first to enable biometric authentication.');
       }
     } catch (error) {
       Alert.alert('Error', 'Biometric authentication error. Please use email login.');

@@ -170,7 +170,7 @@ export default function TransactionsScreen() {
         body: JSON.stringify({
           userId,
           userEmail,
-          amount: parseFloat(amount),
+          amount: parseFloat(points),
           merchantEmail,
         }),
       });

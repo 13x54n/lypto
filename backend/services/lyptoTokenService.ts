@@ -237,25 +237,25 @@ export async function getProgramStats(): Promise<{
     const connection = getConnection();
     const merchant = getMerchantKeypair();
     const { programStatePda } = getPDAs();
-    
+
     const idl = await Program.fetchIdl(PROGRAM_ID, new AnchorProvider(
       connection,
       new NodeWallet(merchant),
       {}
     ));
-    
+
     if (!idl) {
       return null;
     }
-    
+
     const program = new Program(idl, new AnchorProvider(
       connection,
       new NodeWallet(merchant),
       {}
     ));
-    
+
     const programState = await program.account.programState.fetch(programStatePda);
-    
+
     return {
       totalRewardsMinted: (programState as any).totalRewardsMinted.toNumber(),
       totalTransactions: (programState as any).totalTransactions.toNumber(),
@@ -264,5 +264,164 @@ export async function getProgramStats(): Promise<{
     console.error('Error getting program stats:', error);
     return null;
   }
+}
+
+/**
+ * Swap LYPTO tokens for USDC or SOL (simulated)
+ * This uses price feeds and simulates the swap without complex smart contract changes
+ */
+export async function swapLyptoToToken(
+  customerWalletAddress: string,
+  amountInLypto: number,
+  outputToken: 'USDC' | 'SOL'
+): Promise<{
+  success: boolean;
+  txHash?: string;
+  outputAmount: number;
+  exchangeRate: number;
+  fee: number;
+}> {
+  try {
+    console.log(`🔄 Swapping ${amountInLypto} LYPTO for ${outputToken}`);
+
+    // Get current prices (in production, this would come from a price oracle)
+    const prices = await getTokenPrices();
+    const lyptoPrice = prices.LYPTO;
+    const usdcPrice = prices.USDC;
+    const solPrice = prices.SOL;
+
+    if (!lyptoPrice || !usdcPrice || !solPrice) {
+      throw new Error('Unable to fetch current prices');
+    }
+
+    // Calculate exchange rate and output amount
+    let exchangeRate: number;
+    let outputAmount: number;
+    let fee: number;
+
+    if (outputToken === 'USDC') {
+      exchangeRate = lyptoPrice / usdcPrice;
+      outputAmount = amountInLypto * exchangeRate;
+      fee = outputAmount * 0.003; // 0.3% fee
+    } else {
+      exchangeRate = lyptoPrice / solPrice;
+      outputAmount = amountInLypto * exchangeRate;
+      fee = outputAmount * 0.003; // 0.3% fee
+    }
+
+    outputAmount = outputAmount - fee;
+
+    console.log(`   Exchange Rate: 1 LYPTO = ${exchangeRate.toFixed(6)} ${outputToken}`);
+    console.log(`   Output: ${outputAmount.toFixed(6)} ${outputToken}`);
+    console.log(`   Fee: ${fee.toFixed(6)} ${outputToken}`);
+
+    // In a real implementation, this would:
+    // 1. Burn LYPTO tokens from user's account
+    // 2. Transfer output tokens from program account to user
+    // 3. Update program balances
+
+    // For now, we'll simulate the transaction
+    const simulatedTxHash = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    return {
+      success: true,
+      txHash: simulatedTxHash,
+      outputAmount: outputAmount,
+      exchangeRate: exchangeRate,
+      fee: fee
+    };
+
+  } catch (error) {
+    console.error('❌ Error swapping LYPTO:', error);
+    throw error;
+  }
+}
+
+/**
+ * Swap USDC or SOL for LYPTO tokens (simulated)
+ */
+export async function swapTokenToLypto(
+  customerWalletAddress: string,
+  inputAmount: number,
+  inputToken: 'USDC' | 'SOL'
+): Promise<{
+  success: boolean;
+  txHash?: string;
+  outputAmount: number;
+  exchangeRate: number;
+  fee: number;
+}> {
+  try {
+    console.log(`🔄 Swapping ${inputAmount} ${inputToken} for LYPTO`);
+
+    // Get current prices
+    const prices = await getTokenPrices();
+    const lyptoPrice = prices.LYPTO;
+    const usdcPrice = prices.USDC;
+    const solPrice = prices.SOL;
+
+    if (!lyptoPrice || !usdcPrice || !solPrice) {
+      throw new Error('Unable to fetch current prices');
+    }
+
+    // Calculate exchange rate and output amount
+    let exchangeRate: number;
+    let outputAmount: number;
+    let fee: number;
+
+    if (inputToken === 'USDC') {
+      exchangeRate = usdcPrice / lyptoPrice;
+      outputAmount = inputAmount * exchangeRate;
+      fee = outputAmount * 0.003; // 0.3% fee
+    } else {
+      exchangeRate = solPrice / lyptoPrice;
+      outputAmount = inputAmount * exchangeRate;
+      fee = outputAmount * 0.003; // 0.3% fee
+    }
+
+    outputAmount = outputAmount - fee;
+
+    console.log(`   Exchange Rate: 1 ${inputToken} = ${exchangeRate.toFixed(6)} LYPTO`);
+    console.log(`   Output: ${outputAmount.toFixed(6)} LYPTO`);
+    console.log(`   Fee: ${fee.toFixed(6)} LYPTO`);
+
+    // In a real implementation, this would:
+    // 1. Transfer input tokens from user to program account
+    // 2. Mint LYPTO tokens to user's account
+    // 3. Update program balances
+
+    // For now, we'll simulate the transaction
+    const simulatedTxHash = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    return {
+      success: true,
+      txHash: simulatedTxHash,
+      outputAmount: outputAmount,
+      exchangeRate: exchangeRate,
+      fee: fee
+    };
+
+  } catch (error) {
+    console.error('❌ Error swapping to LYPTO:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get current token prices (simulated)
+ * In production, this would fetch from a price oracle like CoinGecko or Pyth
+ */
+async function getTokenPrices(): Promise<{
+  LYPTO: number;
+  USDC: number;
+  SOL: number;
+}> {
+  // Simulate price fetching
+  // In production, integrate with CoinGecko API or Pyth oracle
+  return {
+    LYPTO: 0.01, // $0.01 per LYPTO
+    USDC: 1.0,   // $1.00 per USDC
+    SOL: 100.0   // $100.00 per SOL
+  };
 }
 

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { Template } from '@walletpass/pass-js';
 import path from 'path';
 import fs from 'fs';
+import { swapLyptoToToken, swapTokenToLypto } from '../services/lyptoTokenService';
 
 export const walletRouter = new Hono();
 
@@ -211,6 +212,100 @@ walletRouter.post('/google-pass', async (c) => {
   } catch (error) {
     console.error('Error generating Google Wallet pass:', error);
     return c.json({ error: 'Failed to generate Google Wallet pass' }, 500);
+  }
+});
+
+// Swap LYPTO to USDC or SOL
+walletRouter.post('/swap/lypto-to-token', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { walletAddress, amount, outputToken } = body;
+
+    if (!walletAddress || !amount || !outputToken) {
+      return c.json({ error: 'walletAddress, amount, and outputToken are required' }, 400);
+    }
+
+    if (!['USDC', 'SOL'].includes(outputToken)) {
+      return c.json({ error: 'outputToken must be USDC or SOL' }, 400);
+    }
+
+    if (amount <= 0) {
+      return c.json({ error: 'Amount must be greater than 0' }, 400);
+    }
+
+    const result = await swapLyptoToToken(walletAddress, amount, outputToken);
+
+    return c.json({
+      success: true,
+      ...result,
+      message: `Successfully swapped ${amount} LYPTO for ${result.outputAmount.toFixed(6)} ${outputToken}`
+    });
+
+  } catch (error) {
+    console.error('Error swapping LYPTO:', error);
+    return c.json({
+      error: 'Failed to swap LYPTO',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Swap USDC or SOL to LYPTO
+walletRouter.post('/swap/token-to-lypto', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { walletAddress, amount, inputToken } = body;
+
+    if (!walletAddress || !amount || !inputToken) {
+      return c.json({ error: 'walletAddress, amount, and inputToken are required' }, 400);
+    }
+
+    if (!['USDC', 'SOL'].includes(inputToken)) {
+      return c.json({ error: 'inputToken must be USDC or SOL' }, 400);
+    }
+
+    if (amount <= 0) {
+      return c.json({ error: 'Amount must be greater than 0' }, 400);
+    }
+
+    const result = await swapTokenToLypto(walletAddress, amount, inputToken);
+
+    return c.json({
+      success: true,
+      ...result,
+      message: `Successfully swapped ${amount} ${inputToken} for ${result.outputAmount.toFixed(6)} LYPTO`
+    });
+
+  } catch (error) {
+    console.error('Error swapping to LYPTO:', error);
+    return c.json({
+      error: 'Failed to swap to LYPTO',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get current exchange rates
+walletRouter.get('/swap/rates', async (c) => {
+  try {
+    // This would fetch current rates from a price oracle in production
+    // For now, return static rates
+    return c.json({
+      success: true,
+      rates: {
+        LYPTO_USDC: 0.01, // 1 LYPTO = 0.01 USDC
+        LYPTO_SOL: 0.001,  // 1 LYPTO = 0.001 SOL
+        USDC_LYPTO: 100,   // 1 USDC = 100 LYPTO
+        SOL_LYPTO: 1000,   // 1 SOL = 1000 LYPTO
+      },
+      fees: {
+        swapFee: '0.3%', // 0.3% swap fee
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting swap rates:', error);
+    return c.json({ error: 'Failed to get swap rates' }, 500);
   }
 });
 

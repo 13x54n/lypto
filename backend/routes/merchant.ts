@@ -52,6 +52,25 @@ merchantRouter.post('/create-payment', async (c) => {
 			return c.json({ error: 'Merchant not found' }, 404);
 		}
 
+		// Check if there's already a pending payment for this user-merchant pair within the last 5 minutes
+		const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+		const existingPayment = await Payment.findOne({
+			userEmail,
+			merchantEmail,
+			status: 'pending',
+			createdAt: { $gte: fiveMinutesAgo }
+		});
+
+		if (existingPayment) {
+			console.log(`⚠️  Duplicate payment request detected for ${userEmail} - ${merchantEmail}`);
+			return c.json({
+				success: true,
+				paymentId: existingPayment._id.toString(),
+				message: 'Payment request already exists',
+				duplicate: true
+			});
+		}
+
 		// Calculate LYPTO reward (2% of amount)
 		const amountInCents = Math.floor(parseFloat(amount) * 100);
 		const lyptoReward = Math.floor((amountInCents * 200) / 10000);

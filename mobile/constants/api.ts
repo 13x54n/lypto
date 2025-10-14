@@ -18,4 +18,7 @@ export const endpoints = {
     analyticsStats: `${API_BASE}/api/merchant/analytics/stats`,
     walletBalances: `${API_BASE}/api/merchant/wallet-balances`,
     withdraw: `${API_BASE}/api/merchant/withdraw`,
+    swapLyptoToToken: `${API_BASE}/api/wallet/swap/lypto-to-token`,
+    swapTokenToLypto: `${API_BASE}/api/wallet/swap/token-to-lypto`,
+    swapRates: `${API_BASE}/api/wallet/swap/rates`,
 };

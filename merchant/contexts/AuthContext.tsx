@@ -68,13 +68,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       if (!hasHardware) {
         console.log('No biometric hardware available');
-        return true;
+        return false; // Return false so login screen shows email/OTP option
       }
 
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       if (!isEnrolled) {
         console.log('No biometrics enrolled');
-        return true;
+        return false; // Return false so login screen shows email/OTP option
       }
 
       const result = await LocalAuthentication.authenticateAsync({
