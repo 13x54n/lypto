@@ -1,6 +1,6 @@
 import React, { PropsWithChildren } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Radius } from '@/constants/design';
+import { Colors } from '@/constants/design';
 
 interface CardProps extends PropsWithChildren {
   variant?: 'default' | 'muted' | 'outlined';

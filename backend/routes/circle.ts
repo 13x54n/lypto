@@ -24,7 +24,7 @@ circleRouter.get('/wallets', async (c) => {
     const wallets = await listWallets(user.circleUserId);
     
     // Update user's wallet info if we have it
-    if (wallets.length > 0 && !user.circleWalletId) {
+    if (wallets.length > 0 && !user.circleWalletId && wallets[0]) {
       user.circleWalletId = wallets[0].id;
       user.circleWalletAddress = wallets[0].address;
       user.walletInitialized = true;
@@ -77,9 +77,10 @@ circleRouter.post('/transaction', async (c) => {
 
     const result = await createTransaction({
       walletId: user.circleWalletId,
-      tokenId,
+      blockchain: (process.env.SOLANA_NETWORK === 'mainnet' ? 'SOL-MAINNET' : 'SOL-DEVNET') as 'SOL-DEVNET' | 'SOL-MAINNET',
+      tokenAddress: tokenId || '',
+      amount,
       destinationAddress,
-      amounts: [amount],
     });
 
     return c.json(result);

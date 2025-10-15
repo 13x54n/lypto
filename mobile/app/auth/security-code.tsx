@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SecurityCodeSetupPage() {
-  const { email } = useLocalSearchParams<{ email: string }>();
   const [securityCode, setSecurityCode] = useState(['', '', '', '', '', '']);
   const [confirmCode, setConfirmCode] = useState(['', '', '', '', '', '']);
   const [step, setStep] = useState<'setup' | 'confirm'>('setup');
@@ -93,7 +92,7 @@ export default function SecurityCodeSetupPage() {
       
       // Navigate to dashboard
       router.replace('/dashboard');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to set security code. Please try again.');
     } finally {
       setIsLoading(false);
@@ -172,7 +171,7 @@ export default function SecurityCodeSetupPage() {
               <Text style={styles.tipsTitle}>Security Tips:</Text>
               <Text style={styles.tipText}>• Use at least 4 different digits</Text>
               <Text style={styles.tipText}>• Avoid simple patterns like 123456</Text>
-              <Text style={styles.tipText}>• Don't use your birth year or phone number</Text>
+              <Text style={styles.tipText}>• Don&apos;t use your birth year or phone number</Text>
             </View>
           )}
 

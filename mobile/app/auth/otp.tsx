@@ -135,7 +135,7 @@ export default function OTPVerificationPage() {
             
             <Text style={styles.title}>Verify Your Email</Text>
             <Text style={styles.subtitle}>
-              We've sent a 6-digit code to{'\n'}
+              We&apos;ve sent a 6-digit code to{'\n'}
               <Text style={styles.emailText}>{email}</Text>
             </Text>
           </View>
@@ -174,7 +174,7 @@ export default function OTPVerificationPage() {
           {/* Resend OTP */}
           <View style={styles.resendContainer}>
             <Text style={styles.resendText}>
-              Didn't receive the code?{' '}
+              Didn&apos;t receive the code?{' '}
             </Text>
             <TouchableOpacity
               onPress={handleResendOTP}

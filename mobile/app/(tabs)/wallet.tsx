@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   Switch,
@@ -16,7 +17,6 @@ import {
 import DashboardHeader from '@/components/DashboardHeader';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography } from '@/constants/design';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ListItem } from '@/components/ui/ListItem';
@@ -55,27 +55,8 @@ export default function WalletTab() {
   const [totalCad, setTotalCad] = useState(0);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showSwapModal, setShowSwapModal] = useState(false);
-  const [swapType, setSwapType] = useState<'LYPTOTOKEN' | 'TOKENTOLYPTO'>('LYPTOTOKEN');
-  const [swapAmount, setSwapAmount] = useState('');
-  const [swapToken, setSwapToken] = useState<'USDC' | 'SOL'>('USDC');
-  const [swapping, setSwapping] = useState(false);
-
-  useEffect(() => {
-    if (!userEmail) return;
-    
-    // Load immediately with loading state
-    loadWalletData(true);
-    
-    // Auto-refresh every 10 seconds (without showing loading spinner)
-    const interval = setInterval(() => {
-      loadWalletData(false);
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }, [userEmail]);
-
-  const loadWalletData = async (showLoadingState = false) => {
+  
+  const loadWalletData = useCallback(async (showLoadingState = false) => {
     try {
       if (showLoadingState) {
         setLoading(true);
@@ -98,7 +79,28 @@ export default function WalletTab() {
 
       if (transactionsRes?.ok) {
         const transactionsData = await transactionsRes.json();
-        setTransactions(transactionsData.transactions || []);
+        const txs = transactionsData.transactions || [];
+        if (txs.length > 0) {
+          setTransactions(txs);
+        } else {
+          // Fallback: include pending payments so the user sees recent activity
+          try {
+            const pendingRes = await fetch(`${endpoints.pendingPayments}?userEmail=${userEmail}`).catch(() => null);
+            if (pendingRes?.ok) {
+              const pendingData = await pendingRes.json();
+              const pending = (pendingData.payments || []).map((p: any) => ({
+                id: p.id,
+                merchantEmail: p.merchantEmail,
+                amount: p.amount,
+                lyptoReward: p.lyptoReward,
+                lyptoMinted: false,
+                status: 'pending',
+                createdAt: p.createdAt,
+              }));
+              setTransactions(pending);
+            }
+          } catch {}
+        }
       }
 
       if (walletBalancesRes?.ok) {
@@ -114,7 +116,7 @@ export default function WalletTab() {
         setTotalCad(cadVals.total || 0);
         
         if (!showLoadingState) {
-          console.log(`[Wallet] ✅ Balances updated - SOL: ${newSol.toFixed(4)} ($${cadVals.sol?.toFixed(2)} CAD), USDC: ${newUsdc.toFixed(2)} ($${cadVals.usdc?.toFixed(2)} CAD), LYPTO: ${lyptoBalance}`);
+          console.log(`[Wallet] ✅ Balances updated - SOL: ${newSol.toFixed(4)}, USDC: ${newUsdc.toFixed(2)}`);
         }
       }
     } catch (error) {
@@ -123,7 +125,24 @@ export default function WalletTab() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [userEmail]);
+
+  useEffect(() => {
+    if (!userEmail) {
+      setLoading(false);
+      return;
+    }
+
+    // Load immediately with loading state
+    loadWalletData(true);
+
+    // Auto-refresh every 10 seconds (without showing loading spinner)
+    const interval = setInterval(() => {
+      loadWalletData(false);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [userEmail, loadWalletData]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -441,87 +460,7 @@ export default function WalletTab() {
     setShowPassPreview(true);
   };
 
-  const handleSwap = (type: 'LYPTOTOKEN' | 'TOKENTOLYPTO') => {
-    setSwapType(type);
-    setSwapAmount('');
-    setShowSwapModal(true);
-  };
-
-  const handlePerformSwap = async () => {
-    if (!swapAmount || parseFloat(swapAmount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
-      return;
-    }
-
-    setSwapping(true);
-
-    try {
-      const amount = parseFloat(swapAmount);
-
-      if (swapType === 'LYPTOTOKEN') {
-        // Swap LYPTO to token
-        const response = await fetch(`${endpoints.swapLyptoToToken}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            walletAddress: walletAddress,
-            amount: amount,
-            outputToken: swapToken,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          Alert.alert(
-            'Swap Successful!',
-            `Swapped ${amount} LYPTO for ${data.outputAmount.toFixed(6)} ${swapToken}\nFee: ${data.fee.toFixed(6)} ${swapToken}`,
-            [{ text: 'OK', onPress: () => {
-              setShowSwapModal(false);
-              loadWalletData(true); // Refresh balances
-            }}]
-          );
-        } else {
-          throw new Error(data.error || 'Swap failed');
-        }
-      } else {
-        // Swap token to LYPTO
-        const response = await fetch(`${endpoints.swapTokenToLypto}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            walletAddress: walletAddress,
-            amount: amount,
-            inputToken: swapToken,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          Alert.alert(
-            'Swap Successful!',
-            `Swapped ${amount} ${swapToken} for ${data.outputAmount.toFixed(6)} LYPTO\nFee: ${data.fee.toFixed(6)} LYPTO`,
-            [{ text: 'OK', onPress: () => {
-              setShowSwapModal(false);
-              loadWalletData(true); // Refresh balances
-            }}]
-          );
-        } else {
-          throw new Error(data.error || 'Swap failed');
-        }
-      }
-    } catch (error) {
-      console.error('Swap error:', error);
-      Alert.alert('Swap Failed', error instanceof Error ? error.message : 'Unknown error occurred');
-    } finally {
-      setSwapping(false);
-    }
-  };
+  
 
   const confirmAddToWallet = async () => {
     try {
@@ -791,33 +730,6 @@ export default function WalletTab() {
           </Button>
         </View>
 
-        {/* Swap Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Swap Tokens</Text>
-            <TouchableOpacity style={styles.swapButton} onPress={() => setShowSwapModal(true)}>
-              <Ionicons name="swap-horizontal" size={20} color={Colors.primary} />
-              <Text style={styles.swapButtonText}>Swap</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.swapInfo}>
-            <View style={styles.swapRate}>
-              <Text style={styles.swapRateLabel}>Current Rate</Text>
-              <Text style={styles.swapRateValue}>1 LYPTO ≈ $0.01</Text>
-            </View>
-            <View style={styles.swapActions}>
-              <TouchableOpacity style={styles.swapAction} onPress={() => handleSwap('LYPTOTOKEN')}>
-                <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
-                <Text style={styles.swapActionText}>LYPTO → USDC/SOL</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.swapAction} onPress={() => handleSwap('TOKENTOLYPTO')}>
-                <Ionicons name="arrow-back" size={16} color={Colors.primary} />
-                <Text style={styles.swapActionText}>USDC/SOL → LYPTO</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
 
         {/* Add Card to Wallet */}
         <View style={styles.section}>
@@ -916,138 +828,7 @@ export default function WalletTab() {
         onWithdraw={handleWithdraw}
       />
 
-      {/* Swap Modal */}
-      <Modal
-        visible={showSwapModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSwapModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {swapType === 'LYPTOTOKEN' ? 'Swap LYPTO' : 'Swap to LYPTO'}
-              </Text>
-              <TouchableOpacity onPress={() => setShowSwapModal(false)}>
-                <Ionicons name="close-circle" size={28} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.swapModalContent}>
-              {/* Swap Type Selector */}
-              <View style={styles.swapTypeSelector}>
-                <TouchableOpacity
-                  style={[styles.swapTypeButton, swapType === 'LYPTOTOKEN' && styles.swapTypeButtonActive]}
-                  onPress={() => setSwapType('LYPTOTOKEN')}
-                >
-                  <Text style={[styles.swapTypeButtonText, swapType === 'LYPTOTOKEN' && styles.swapTypeButtonTextActive]}>
-                    LYPTO → Token
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.swapTypeButton, swapType === 'TOKENTOLYPTO' && styles.swapTypeButtonActive]}
-                  onPress={() => setSwapType('TOKENTOLYPTO')}
-                >
-                  <Text style={[styles.swapTypeButtonText, swapType === 'TOKENTOLYPTO' && styles.swapTypeButtonTextActive]}>
-                    Token → LYPTO
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Token Selector */}
-              {swapType === 'LYPTOTOKEN' ? (
-                <View style={styles.tokenSelector}>
-                  <Text style={styles.tokenSelectorLabel}>Swap to:</Text>
-                  <View style={styles.tokenOptions}>
-                    <TouchableOpacity
-                      style={[styles.tokenOption, swapToken === 'USDC' && styles.tokenOptionActive]}
-                      onPress={() => setSwapToken('USDC')}
-                    >
-                      <Text style={[styles.tokenOptionText, swapToken === 'USDC' && styles.tokenOptionTextActive]}>
-                        USDC
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.tokenOption, swapToken === 'SOL' && styles.tokenOptionActive]}
-                      onPress={() => setSwapToken('SOL')}
-                    >
-                      <Text style={[styles.tokenOptionText, swapToken === 'SOL' && styles.tokenOptionTextActive]}>
-                        SOL
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.tokenSelector}>
-                  <Text style={styles.tokenSelectorLabel}>Swap from:</Text>
-                  <View style={styles.tokenOptions}>
-                    <TouchableOpacity
-                      style={[styles.tokenOption, swapToken === 'USDC' && styles.tokenOptionActive]}
-                      onPress={() => setSwapToken('USDC')}
-                    >
-                      <Text style={[styles.tokenOptionText, swapToken === 'USDC' && styles.tokenOptionTextActive]}>
-                        USDC
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.tokenOption, swapToken === 'SOL' && styles.tokenOptionActive]}
-                      onPress={() => setSwapToken('SOL')}
-                    >
-                      <Text style={[styles.tokenOptionText, swapToken === 'SOL' && styles.tokenOptionTextActive]}>
-                        SOL
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-
-              {/* Amount Input */}
-              <View style={styles.amountInputContainer}>
-                <Text style={styles.amountInputLabel}>
-                  Amount {swapType === 'LYPTOTOKEN' ? '(LYPTO)' : `(${swapToken})`}
-                </Text>
-                <TextInput
-                  style={styles.amountInput}
-                  placeholder="0.00"
-                  value={swapAmount}
-                  onChangeText={setSwapAmount}
-                  keyboardType="decimal-pad"
-                  returnKeyType="done"
-                />
-              </View>
-
-              {/* Exchange Rate Info */}
-              <View style={styles.exchangeInfo}>
-                <Text style={styles.exchangeInfoText}>
-                  Rate: 1 LYPTO ≈ 0.01 {swapType === 'LYPTOTOKEN' ? swapToken : 'LYPTO'}
-                </Text>
-                <Text style={styles.exchangeInfoText}>
-                  Fee: 0.3%
-                </Text>
-              </View>
-
-              {/* Swap Button */}
-              <TouchableOpacity
-                style={[styles.swapConfirmButton, swapping && styles.swapConfirmButtonDisabled]}
-                onPress={handlePerformSwap}
-                disabled={swapping || !swapAmount}
-              >
-                {swapping ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.swapConfirmButtonText}>
-                    {swapType === 'LYPTOTOKEN'
-                      ? `Swap ${swapAmount || '0'} LYPTO for ${swapToken}`
-                      : `Swap ${swapAmount || '0'} ${swapToken} for LYPTO`
-                    }
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      
 
       {/* Pass Preview Modal */}
       <Modal

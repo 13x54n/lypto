@@ -1,6 +1,6 @@
-import React, { PropsWithChildren } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Radius, Typography } from '@/constants/design';
+import { Colors, Typography } from '@/constants/design';
 
 interface ListItemProps {
   title: string;

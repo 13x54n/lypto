@@ -1,4 +1,5 @@
-import { Context, Next } from "hono";
+import type { Context } from "hono";
+import type { Next } from "hono";
 import jwt from "jsonwebtoken";
 
 export interface JwtPayloadCustom {

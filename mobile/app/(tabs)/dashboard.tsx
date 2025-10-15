@@ -27,16 +27,19 @@ interface Transaction {
 export default function DashboardTab() {
   const { userEmail } = useAuth();
   const [lyptoBalance, setLyptoBalance] = useState(0);
-  const [totalEarned, setTotalEarned] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    if (!userEmail) {
+      setLoading(false);
+      return;
+    }
     loadDashboardData();
   }, [userEmail]);
 
-  const loadDashboardData = async () => {
+  async function loadDashboardData() {
     try {
       console.log('[Dashboard] Fetching data from:', API_BASE);
       console.log('[Dashboard] User email:', userEmail);
@@ -56,7 +59,6 @@ export default function DashboardTab() {
             const balanceData = await balanceRes.json();
             console.log('[Dashboard] Balance data:', balanceData);
             setLyptoBalance(balanceData.balance || 0);
-            setTotalEarned(balanceData.totalEarned || 0);
         } else {
             console.warn('[Dashboard] Balance request failed');
         }
@@ -74,7 +76,7 @@ export default function DashboardTab() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -82,7 +84,6 @@ export default function DashboardTab() {
   };
 
   // Calculate stats from transactions
-  const confirmedTransactions = transactions.filter(t => t.status === 'confirmed');
   const thisMonthTransactions = transactions.filter(t => {
     const txDate = new Date(t.createdAt);
     const now = new Date();

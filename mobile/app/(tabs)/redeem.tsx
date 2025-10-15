@@ -1,19 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import DashboardHeader from '@/components/DashboardHeader';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/contexts/AuthContext';
+import { endpoints } from '@/constants/api';
 
 export default function RedeemTab() {
-  const [autoRedeemEnabled, setAutoRedeemEnabled] = useState(false)
-  const [fromAmount, setFromAmount] = useState('20.20')
+  const { userEmail } = useAuth();
+  const [fromAmount, setFromAmount] = useState('')
   const [toAmount, setToAmount] = useState('0.00')
+  const [lyptoBalance, setLyptoBalance] = useState(0)
+  const [walletAddress, setWalletAddress] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   // Empty array - no rewards available yet
   const redeemOptions: any[] = [];
 
@@ -21,9 +27,70 @@ export default function RedeemTab() {
     console.log('Redeeming:', option.title);
   };
 
+  useEffect(() => {
+    if (!userEmail) return;
+    const load = async () => {
+      try {
+        const res = await fetch(`${endpoints.lyptoBalance}?email=${userEmail}`);
+        if (res.ok) {
+          const data = await res.json();
+          setLyptoBalance(data.balance || 0);
+          setWalletAddress(data.walletAddress || '');
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    load();
+  }, [userEmail]);
+
+  const performRedeem = async () => {
+    const amountNum = parseFloat(fromAmount || '0');
+    if (!amountNum || amountNum <= 0) {
+      Alert.alert('Error', 'Enter a valid LYPTO amount');
+      return;
+    }
+    if (!walletAddress) {
+      Alert.alert('Error', 'Wallet not ready yet. Try again.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await fetch(`${endpoints.swapLyptoToToken}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress,
+          amount: amountNum,
+          outputToken: 'USDC',
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Redeem failed');
+      }
+      setFromAmount('');
+      setToAmount(String(data.outputAmount?.toFixed ? data.outputAmount.toFixed(6) : data.outputAmount));
+      // refresh balance
+      try {
+        const res = await fetch(`${endpoints.lyptoBalance}?email=${userEmail}`);
+        if (res.ok) {
+          const b = await res.json();
+          setLyptoBalance(b.balance || 0);
+        }
+      } catch {}
+      Alert.alert('Success', `Redeemed ${amountNum} LYPTO for ${data.outputAmount?.toFixed ? data.outputAmount.toFixed(6) : data.outputAmount} USDC`);
+    } catch (err: any) {
+      Alert.alert('Redeem Failed', err?.message || 'Unknown error occurred');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <DashboardHeader totalPoints={1250} />
+      <DashboardHeader totalPoints={lyptoBalance} />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Swap Section */}
@@ -39,11 +106,18 @@ export default function RedeemTab() {
                 <Text style={styles.assetName}>Lypto Points</Text>
               </TouchableOpacity>
               <View style={styles.amountRight}>
-                <Text style={styles.amountValue}>{fromAmount}</Text>
+                <TextInput
+                  style={styles.amountInput}
+                  placeholder="0.00"
+                  keyboardType="decimal-pad"
+                  value={fromAmount}
+                  onChangeText={setFromAmount}
+                  returnKeyType="done"
+                />
               </View>
             </View>
             <View style={styles.balanceRow}>
-              <Text style={styles.balanceText}>Balance: <Text style={styles.balanceMuted}>0.00</Text> <Text style={styles.maxText}>Max</Text></Text>
+              <Text style={styles.balanceText}>Balance: <Text style={styles.balanceMuted}>{lyptoBalance.toLocaleString()}</Text> <Text style={styles.maxText}>Max</Text></Text>
             </View>
           </View>
 
@@ -79,8 +153,8 @@ export default function RedeemTab() {
 
           {/* Redeem CTA and Fee */}
           <View style={styles.redeemRow}>
-            <TouchableOpacity style={styles.redeemButton}>
-              <Text style={styles.redeemButtonText}>Redeem Lypto Points</Text>
+            <TouchableOpacity style={styles.redeemButton} onPress={performRedeem} disabled={submitting}>
+              <Text style={styles.redeemButtonText}>{submitting ? 'Processing...' : 'Redeem Lypto Points'}</Text>
             </TouchableOpacity>
             <View style={styles.feeRow}>
               <Ionicons name="flash" size={14} color="#9CA3AF" />
@@ -130,7 +204,7 @@ export default function RedeemTab() {
                 Check back soon for exciting redemption options!
               </Text>
               <Text style={styles.emptyStateSubtext}>
-                We're working on adding gift cards, exclusive deals, and more ways to use your LYPTO tokens.
+                We&apos;re working on adding gift cards, exclusive deals, and more ways to use your LYPTO tokens.
               </Text>
             </View>
           ) : (
@@ -260,6 +334,14 @@ const styles = StyleSheet.create({
   },
   amountRight: {
     alignItems: 'flex-end',
+  },
+  amountInput: {
+    fontSize: 36,
+    color: '#fff',
+    fontWeight: '300',
+    letterSpacing: -0.5,
+    textAlign: 'right',
+    paddingVertical: 0,
   },
   amountValue: {
     fontSize: 36,

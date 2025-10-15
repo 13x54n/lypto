@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography } from '@/constants/design';
+import { Colors } from '@/constants/design';
 import { Button } from './ui/Button';
 
 interface WithdrawModalProps {
@@ -200,7 +200,7 @@ export default function WithdrawModal({
                 <Text style={styles.feeValue}>~0.000005 SOL</Text>
               </View>
               <View style={styles.feeRow}>
-                <Text style={styles.feeLabel}>You'll Receive</Text>
+                <Text style={styles.feeLabel}>You&apos;ll Receive</Text>
                 <Text style={styles.feeValueBold}>
                   {amount || '0.00'} {selectedToken}
                 </Text>

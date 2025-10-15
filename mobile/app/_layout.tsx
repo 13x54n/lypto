@@ -25,7 +25,7 @@ try {
   addNotificationReceivedListener = notificationUtils.addNotificationReceivedListener;
   addNotificationResponseReceivedListener = notificationUtils.addNotificationResponseReceivedListener;
   setupNotificationCategories = notificationUtils.setupNotificationCategories;
-} catch (error) {
+} catch {
   console.log('Push notifications not available in this build');
 }
 
@@ -33,27 +33,31 @@ function RootNavigator() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const { userEmail, isAuthenticated } = useAuth();
-  const notificationListener = useRef<any>();
-  const responseListener = useRef<any>();
+  const notificationListener = useRef<any>(null);
+  const responseListener = useRef<any>(null);
 
   useEffect(() => {
     if (isAuthenticated && userEmail && registerForPushNotificationsAsync) {
       // Set up notification action buttons
       if (setupNotificationCategories) {
-        setupNotificationCategories();
+        setupNotificationCategories().catch(() => {});
       }
 
       // Register for push notifications (only if available)
-      registerForPushNotificationsAsync().then(async (token: string) => {
+      let savedOnce = false;
+      registerForPushNotificationsAsync().then(async (token: string | undefined) => {
         if (token) {
           // Save push token to backend
           try {
-            await fetch(`${API_BASE}/api/auth/save-push-token`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: userEmail, pushToken: token }),
-            });
-            console.log('Push token saved:', token);
+            if (!savedOnce) {
+              savedOnce = true;
+              await fetch(`${API_BASE}/api/auth/save-push-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: userEmail, pushToken: token }),
+              });
+              console.log('Push token saved:', token);
+            }
           } catch (error) {
             console.error('Failed to save push token:', error);
           }
@@ -106,7 +110,7 @@ function RootNavigator() {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
     };
-  }, [isAuthenticated, userEmail]);
+  }, [isAuthenticated, userEmail, router]);
 
   return (
     <PaymentProvider>

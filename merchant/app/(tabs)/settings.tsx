@@ -80,7 +80,7 @@ export default function SettingsScreen() {
           >
             <View style={styles.optionLeft}>
               <View style={styles.iconContainer}>
-                <Ionicons name={option.icon as any} size={24} color="#55efc4" />
+                <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={24} color="#55efc4" />
               </View>
               <View>
                 <Text style={styles.optionTitle}>{option.title}</Text>

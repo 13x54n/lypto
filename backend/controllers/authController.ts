@@ -206,10 +206,14 @@ export async function savePushToken(c: Context) {
 			return c.json({ error: "User not found" }, 404);
 		}
 
-		user.pushToken = pushToken;
-		await user.save();
+		// Idempotent update: only write if changed
+		if (user.pushToken !== pushToken) {
+			user.pushToken = pushToken;
+			await user.save();
+			return c.json({ ok: true, message: "Push token saved" });
+		}
 
-		return c.json({ ok: true, message: "Push token saved" });
+		return c.json({ ok: true, message: "Push token unchanged" });
 	} catch (error) {
 		console.error('Error saving push token:', error);
 		return c.json({ error: "Failed to save push token" }, 500);

@@ -1,6 +1,23 @@
 import { Connection, PublicKey, Transaction, Keypair } from '@solana/web3.js';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
+import type { Idl } from '@coral-xyz/anchor';
 import NodeWallet from '@coral-xyz/anchor/dist/cjs/nodewallet';
+
+// Define the IDL type for our program
+type LyptoProgramIdl = Idl & {
+  accounts: Array<{
+    name: string;
+    discriminator: number[];
+  }>;
+  instructions: Array<{
+    name: string;
+    discriminator: number[];
+    accounts: Array<{
+      name: string;
+      pda?: any;
+    }>;
+  }>;
+};
 
 // Solana RPC endpoints
 const SOLANA_DEVNET_RPC = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
@@ -110,15 +127,16 @@ export async function mintLyptoReward(
     if (!idl) {
       throw new Error('IDL not found - contract not deployed?');
     }
-    
-    const program = new Program(idl, new AnchorProvider(
+
+    const provider = new AnchorProvider(
       connection,
       new NodeWallet(merchant),
       {}
-    ));
-    
+    );
+    const program = new Program(idl as LyptoProgramIdl, provider);
+
     // Call process_payment instruction
-    const tx = await program.methods
+    const tx = await (program.methods as any)
       .processPayment(new BN(amountInCents), transactionId)
       .accounts({
         programState: programStatePda,
@@ -204,13 +222,14 @@ export async function getTransactionDetails(transactionId: string): Promise<{
       return null;
     }
     
-    const program = new Program(idl, new AnchorProvider(
+    const provider = new AnchorProvider(
       connection,
       new NodeWallet(merchant),
       {}
-    ));
+    );
+    const program = new Program(idl as LyptoProgramIdl, provider);
     
-    const transactionData = await program.account.transaction.fetch(transactionPda);
+    const transactionData = await (program.account as any).transaction.fetch(transactionPda);
     
     return {
       transactionId: (transactionData as any).transactionId,
@@ -248,13 +267,14 @@ export async function getProgramStats(): Promise<{
       return null;
     }
 
-    const program = new Program(idl, new AnchorProvider(
+    const provider = new AnchorProvider(
       connection,
       new NodeWallet(merchant),
       {}
-    ));
+    );
+    const program = new Program(idl as LyptoProgramIdl, provider);
 
-    const programState = await program.account.programState.fetch(programStatePda);
+    const programState = await (program.account as any).programState.fetch(programStatePda);
 
     return {
       totalRewardsMinted: (programState as any).totalRewardsMinted.toNumber(),

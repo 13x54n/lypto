@@ -48,8 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUserEmail(storedEmail);
             setIsAuthenticated(true);
           } else {
-            // Biometric failed - user needs to login again
-            await logout();
+            // Biometric failed - do not wipe credentials; fall back to email login
+            // Keep state unauthenticated so login screen shows, but preserve stored creds
+            setIsAuthenticated(false);
           }
         } else {
           // No biometric required or not available - auto-login

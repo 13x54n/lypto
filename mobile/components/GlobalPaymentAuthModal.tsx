@@ -26,7 +26,7 @@ export default function GlobalPaymentAuthModal() {
       setHasVibrated(false); // Reset for next payment
       setIsProcessing(false);
     }
-  }, [currentPayment]);
+  }, [currentPayment, hasVibrated]);
 
   const handleConfirm = async () => {
     if (!currentPayment || loading || isProcessing) return;
@@ -57,7 +57,7 @@ export default function GlobalPaymentAuthModal() {
         Alert.alert('Error', data.message || 'Failed to confirm payment');
         setIsProcessing(false);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Network error. Please try again.');
       setIsProcessing(false);
     } finally {
@@ -101,7 +101,7 @@ export default function GlobalPaymentAuthModal() {
                 Alert.alert('Error', data.message || 'Failed to decline payment');
                 setIsProcessing(false);
               }
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Network error. Please try again.');
               setIsProcessing(false);
             } finally {

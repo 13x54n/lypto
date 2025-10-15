@@ -23,7 +23,7 @@ export function LoyaltyPointsChart({ width, height }: ChartProps) {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [userEmail]);
+  }, [userEmail, fetchAnalytics]);
 
   const fetchAnalytics = async () => {
     try {

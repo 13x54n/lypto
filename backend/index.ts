@@ -13,9 +13,31 @@ dotenv.config();
 const app = new Hono();
 
 app.use("*", logger());
+
+// Security headers (basic)
+app.use("*", async (c, next) => {
+	c.res.headers.set('X-Content-Type-Options', 'nosniff');
+	c.res.headers.set('X-Frame-Options', 'DENY');
+	c.res.headers.set('Referrer-Policy', 'no-referrer');
+	c.res.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+	c.res.headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+	await next();
+});
+
+// CORS: allow specific origins from env in production, * in dev
+const allowedOrigins = (process.env.CORS_ORIGINS || '*')
+	.split(',')
+	.map(o => o.trim())
+	.filter(Boolean);
+
 app.use("*", cors({
-	origin: '*', // Allow all origins in development
+	origin: (origin) => {
+		if (allowedOrigins.includes('*')) return '*';
+		if (!origin) return allowedOrigins[0] || '';
+		return allowedOrigins.includes(origin) ? origin : '';
+	},
 	credentials: true,
+	maxAge: 600,
 }));
 
 app.get("/health", (c) => c.json({ ok: true }));

@@ -22,8 +22,8 @@ export default function LoginScreen() {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       setBiometricAvailable(hasHardware && isEnrolled);
-    } catch (error) {
-      console.error('Error checking biometric availability:', error);
+    } catch {
+      console.error('Error checking biometric availability');
     }
   };
 
@@ -47,7 +47,7 @@ export default function LoginScreen() {
         // No stored credentials - biometric login not available
         Alert.alert('Not Available', 'Please log in with email first to enable biometric authentication.');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Biometric authentication error. Please use email login.');
     }
   };
@@ -73,7 +73,7 @@ export default function LoginScreen() {
       } else {
         Alert.alert('Error', data.message || 'Failed to send OTP');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -142,7 +142,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={styles.info}>
-          We'll send a one-time password to your email
+          We&apos;ll send a one-time password to your email
         </Text>
       </View>
     </View>

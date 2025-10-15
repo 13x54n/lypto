@@ -15,6 +15,7 @@ import { endpoints } from '../../constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 
 export default function EmailAuthPage() {
   const { authenticateWithBiometrics, login } = useAuth();

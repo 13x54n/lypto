@@ -42,7 +42,7 @@ export default function PaymentRequestModal({ visible, payment, onClose, onConfi
       } else {
         Alert.alert('Error', 'Failed to confirm payment');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -79,7 +79,7 @@ export default function PaymentRequestModal({ visible, payment, onClose, onConfi
               } else {
                 Alert.alert('Error', 'Failed to decline payment');
               }
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Network error. Please try again.');
             } finally {
               setLoading(false);

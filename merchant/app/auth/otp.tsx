@@ -24,7 +24,7 @@ export default function OTPScreen() {
     }
   };
 
-  const handleKeyPress = (e: any, index: number) => {
+  const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -58,7 +58,7 @@ export default function OTPScreen() {
         setOTP(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -78,7 +78,7 @@ export default function OTPScreen() {
         setOTP(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to resend OTP');
     }
   };
@@ -131,7 +131,7 @@ export default function OTPScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.resendButton} onPress={handleResend}>
-        <Text style={styles.resendText}>Didn't receive code? </Text>
+        <Text style={styles.resendText}>Didn&apos;t receive code? </Text>
         <Text style={styles.resendLink}>Resend</Text>
       </TouchableOpacity>
     </View>

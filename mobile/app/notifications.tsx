@@ -61,20 +61,6 @@ export default function NotificationsPage() {
     }
   };
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'earned':
-        return '#55efc4';
-      case 'referral':
-        return '#ffd700';
-      case 'offer':
-        return '#ff6b6b';
-      case 'welcome':
-        return '#74b9ff';
-      default:
-        return '#999';
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,7 +119,7 @@ export default function NotificationsPage() {
             <Text style={styles.emptyIcon}>📭</Text>
             <Text style={styles.emptyTitle}>No Notifications</Text>
             <Text style={styles.emptyMessage}>
-              You're all caught up! New notifications will appear here.
+              You&apos;re all caught up! New notifications will appear here.
             </Text>
           </View>
         )}

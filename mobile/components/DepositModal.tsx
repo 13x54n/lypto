@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography } from '@/constants/design';
+import { Colors } from '@/constants/design';
 import { Button } from './ui/Button';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -141,7 +141,7 @@ export default function DepositModal({ visible, onClose, walletAddress }: Deposi
               <View style={styles.instructionItem}>
                 <Ionicons name="shield-checkmark-outline" size={20} color={Colors.primary} />
                 <Text style={styles.instructionText}>
-                  Your funds are secured by Circle's infrastructure
+                  Your funds are secured by Circle&apos;s infrastructure
                 </Text>
               </View>
             </View>

@@ -42,7 +42,7 @@ export default function TransactionsScreen() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Poll payment status when on waiting screen
   useEffect(() => {
@@ -52,22 +52,22 @@ export default function TransactionsScreen() {
       try {
         const response = await fetch(`${endpoints.getTransactions}?merchantEmail=${merchantEmail}`);
         if (response.ok) {
-          const data = await response.json();
-          const payment = data.transactions.find((t: any) => t.id === currentPaymentId);
+          const data = await response.json() as { transactions?: Array<{ id: string; status: string }> };
+          const payment = data.transactions?.find((t) => t.id === currentPaymentId);
           if (payment && payment.status !== 'pending') {
-            setPaymentStatus(payment.status);
+            setPaymentStatus(payment.status as 'pending' | 'confirmed' | 'declined');
             loadData(); // Refresh transactions list
           }
         }
-      } catch (error) {
-        console.error('Error polling status:', error);
+      } catch {
+        console.error('Error polling status');
       }
     };
 
     // Poll every 2 seconds
     const interval = setInterval(pollStatus, 2000);
     return () => clearInterval(interval);
-  }, [showWaiting, currentPaymentId, merchantEmail]);
+  }, [showWaiting, currentPaymentId, merchantEmail, pollStatus, loadData]);
 
   const loadData = async () => {
     try {
@@ -216,9 +216,9 @@ export default function TransactionsScreen() {
     setScanned(false);
   };
 
-  const renderStatCard = (title: string, count: number, total: number, icon: string) => (
+  const renderStatCard = (title: string, count: number, total: number, icon: keyof typeof Ionicons.glyphMap) => (
     <View style={styles.statCard}>
-      <Ionicons name={icon as any} size={24} color="#55efc4" />
+      <Ionicons name={icon} size={24} color="#55efc4" />
       <Text style={styles.statTitle}>{title}</Text>
       <Text style={styles.statCount}>{count} transactions</Text>
       <Text style={styles.statTotal}>${total.toFixed(2)}</Text>

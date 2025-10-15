@@ -235,9 +235,10 @@ walletRouter.post('/swap/lypto-to-token', async (c) => {
 
     const result = await swapLyptoToToken(walletAddress, amount, outputToken);
 
+    const { success, ...swapResult } = result;
     return c.json({
       success: true,
-      ...result,
+      ...swapResult,
       message: `Successfully swapped ${amount} LYPTO for ${result.outputAmount.toFixed(6)} ${outputToken}`
     });
 
@@ -270,9 +271,10 @@ walletRouter.post('/swap/token-to-lypto', async (c) => {
 
     const result = await swapTokenToLypto(walletAddress, amount, inputToken);
 
+    const { success, ...swapResult } = result;
     return c.json({
       success: true,
-      ...result,
+      ...swapResult,
       message: `Successfully swapped ${amount} ${inputToken} for ${result.outputAmount.toFixed(6)} LYPTO`
     });
 
